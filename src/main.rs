@@ -19,58 +19,82 @@ use clumsy_stm_bot::{
 
 use embassy_executor::Spawner;
 use embassy_stm32::{
-    gpio::{AnyPin, Input, Level, Output, Pin, Pull},
-    pwm::{self, Pwm},
+    gpio::{Input, Level, Output, OutputType, Pull, Speed},
+    peripherals::{TIM2, TIM3},
+    time::khz,
+    timer::simple_pwm::{PwmPin, SimplePwm, SimplePwmChannel},
 };
 use embassy_time::Timer;
 
 use clumsy_stm_bot as _;
 use defmt::info;
 
-type MyMotor<'a> = Motor<Pwm<'a>, Output<'a>, Output<'a>>;
+type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
+type RightMotor<'a> = Motor<SimplePwmChannel<'a, TIM2>, Output<'a>, Output<'a>>;
 type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let p = embassy_rp::init(Default::default());
+    let p = embassy_stm32::init(Default::default());
     defmt::info!("Hello World!");
     defmt::println!("Hello");
 
-    spawner.spawn(blink(p.PIN_25.degrade())).unwrap();
+    let led = Output::new(p.PA5, Level::High, Speed::High);
+    spawner.spawn(blink(led)).unwrap();
 
-    let pwm_conf = pwm::Config::default();
+    let pwm_pin = PwmPin::new_ch2(p.PA7, OutputType::PushPull);
 
-    let pwm = Pwm::new_output_a(p.PWM_SLICE1, p.PIN_2, pwm_conf.clone());
+    let pwm = SimplePwm::new(
+        p.TIM3,
+        None,
+        Some(pwm_pin),
+        None,
+        None,
+        khz(10),
+        Default::default(),
+    );
+    let mut ch1 = pwm.split().ch1;
+    ch1.enable();
 
-    let left_motor: Motor<Pwm<'_>, Output<'_>, Output<'_>> = Motor::new(
-        pwm,
-        Output::new(p.PIN_3, Level::Low),
-        Output::new(p.PIN_4, Level::Low),
+    let left_motor = Motor::new(
+        ch1,
+        Output::new(p.PB6, Level::Low, Speed::Low),
+        Output::new(p.PC7, Level::Low, Speed::Low),
         0,
         Default::default(),
     );
 
-    let pwm2 = Pwm::new_output_b(p.PWM_SLICE4, p.PIN_9, pwm_conf.clone());
+    let pwm_pin = PwmPin::new_ch3(p.PB10, OutputType::PushPull);
+    let pwm2 = SimplePwm::new(
+        p.TIM2,
+        None,
+        None,
+        Some(pwm_pin),
+        None,
+        khz(10),
+        Default::default(),
+    );
+    let mut ch3 = pwm2.split().ch3;
+    ch3.enable();
 
-    let right_motor: Motor<Pwm<'_>, Output<'_>, Output<'_>> = Motor::new(
-        pwm2,
-        Output::new(p.PIN_7, Level::Low),
-        Output::new(p.PIN_8, Level::Low),
+    let right_motor = Motor::new(
+        ch3,
+        Output::new(p.PA8, Level::Low, Speed::Low),
+        Output::new(p.PA9, Level::Low, Speed::Low),
         0,
         Default::default(),
     );
     let line_sensor = TrippleLineSensor::new(
-        Input::new(p.PIN_21, Pull::Up),
-        Input::new(p.PIN_19, Pull::Up),
-        Input::new(p.PIN_18, Pull::Up),
+        Input::new(p.PB4, Pull::Up),
+        Input::new(p.PB5, Pull::Up),
+        Input::new(p.PB3, Pull::Up),
     );
 
     spawner.must_spawn(follow_line(line_sensor, left_motor, right_motor));
 }
 
 #[embassy_executor::task]
-async fn blink(led_pin: AnyPin) {
-    let mut led = Output::new(led_pin, Level::High);
+async fn blink(mut led: Output<'static>) {
     loop {
         info!("high");
         led.set_high();
@@ -85,8 +109,8 @@ async fn blink(led_pin: AnyPin) {
 #[embassy_executor::task]
 async fn follow_line(
     mut sensor: MyLineSensor<'static>,
-    mut left_motor: MyMotor<'static>,
-    mut right_motor: MyMotor<'static>,
+    mut left_motor: LeftMotor<'static>,
+    mut right_motor: RightMotor<'static>,
 ) {
     let speed = 80; // reduce speed
     loop {
