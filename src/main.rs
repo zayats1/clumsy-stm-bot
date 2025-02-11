@@ -36,8 +36,6 @@ type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
-    defmt::info!("Hello World!");
-    defmt::println!("Hello");
 
     let led = Output::new(p.PA5, Level::High, Speed::High);
     spawner.spawn(blink(led)).unwrap();
