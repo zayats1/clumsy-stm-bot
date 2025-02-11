@@ -57,6 +57,7 @@ where
     pub fn stop(&mut self) {
         debug!("stop");
         self.speed = 0;
+        let _ = self.pwm_pin.set_duty_cycle_fully_off();
         let (_, _) = (self.forward_pin.set_low(), self.backward_pin.set_high());
     }
 
