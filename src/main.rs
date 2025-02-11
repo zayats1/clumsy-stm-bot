@@ -53,11 +53,11 @@ async fn main(spawner: Spawner) {
         khz(10),
         Default::default(),
     );
-    let mut ch1 = pwm.split().ch1;
-    ch1.enable();
+    let mut ch2 = pwm.split().ch2;
+    ch2.enable();
 
     let left_motor = Motor::new(
-        ch1,
+        ch2,
         Output::new(p.PB6, Level::Low, Speed::Low),
         Output::new(p.PC7, Level::Low, Speed::Low),
         0,
@@ -79,8 +79,8 @@ async fn main(spawner: Spawner) {
 
     let right_motor = Motor::new(
         ch3,
-        Output::new(p.PA8, Level::Low, Speed::Low),
         Output::new(p.PA9, Level::Low, Speed::Low),
+        Output::new(p.PA8, Level::Low, Speed::Low),
         0,
         Default::default(),
     );
