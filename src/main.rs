@@ -108,6 +108,7 @@ async fn follow_line(
 ) {
     loop {
         Timer::after_nanos(50).await;
+        // Todo: refactor and tests
         let angle: f32 = match sensor.read() {
             LinePos::NoLine => {
                 left_motor.stop();
