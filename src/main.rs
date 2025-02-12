@@ -4,7 +4,7 @@
 #![no_std]
 #![no_main]
 
-use core::{f32::consts::PI, u16};
+use core::f32::consts::PI;
 
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
@@ -27,11 +27,12 @@ use embassy_stm32::{
 use embassy_time::Timer;
 
 use clumsy_stm_bot as _;
-use defmt::info;
 
 type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
 type RightMotor<'a> = Motor<SimplePwmChannel<'a, TIM2>, Output<'a>, Output<'a>>;
 type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
+
+const SPEED: i16 = 88;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -94,12 +95,7 @@ async fn main(spawner: Spawner) {
 #[embassy_executor::task]
 async fn blink(mut led: Output<'static>) {
     loop {
-        info!("high");
-        led.set_high();
-        Timer::after_millis(500).await;
-
-        info!("low");
-        led.set_low();
+        led.toggle();
         Timer::after_millis(500).await;
     }
 }
@@ -110,10 +106,8 @@ async fn follow_line(
     mut left_motor: LeftMotor<'static>,
     mut right_motor: RightMotor<'static>,
 ) {
-    let speed = 80; // reduce speed
     loop {
-        //for controller to not halt
-        Timer::after_millis(250).await;
+        Timer::after_nanos(50).await;
         let angle: f32 = match sensor.read() {
             LinePos::NoLine => {
                 left_motor.stop();
@@ -128,9 +122,9 @@ async fn follow_line(
         };
 
         let (left_speed, right_speed) = if angle < 0.0 {
-            (angle_to_speed(speed as f32, angle), speed)
+            (angle_to_speed(SPEED as f32, angle), SPEED)
         } else {
-            (speed, angle_to_speed(speed as f32, angle))
+            (SPEED, angle_to_speed(SPEED as f32, angle))
         };
         left_motor.run(left_speed);
         right_motor.run(right_speed);
