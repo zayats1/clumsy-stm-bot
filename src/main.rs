@@ -114,11 +114,11 @@ async fn follow_line(
                 right_motor.stop();
                 continue;
             }
-            LinePos::Lefter => PI / 4.0,
-            LinePos::Left => PI / 12.0,
+            LinePos::Lefter => -PI / 4.0,
+            LinePos::Left => -PI / 12.0,
             LinePos::Middle => 0.0,
-            LinePos::Right => -PI / 12.0,
-            LinePos::Righter => -PI / 4.0,
+            LinePos::Right => PI / 12.0,
+            LinePos::Righter => PI / 4.0,
         };
 
         let (left_speed, right_speed) = if angle < 0.0 {
