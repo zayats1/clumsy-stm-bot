@@ -84,9 +84,9 @@ async fn main(spawner: Spawner) {
         Default::default(),
     );
     let line_sensor = TrippleLineSensor::new(
-        Input::new(p.PB4, Pull::Down),
-        Input::new(p.PB5, Pull::Down),
-        Input::new(p.PB3, Pull::Down),
+        Input::new(p.PB4, Pull::Up),
+        Input::new(p.PB5, Pull::Up),
+        Input::new(p.PB3, Pull::Up),
     );
 
     spawner.must_spawn(follow_line(line_sensor, left_motor, right_motor));
