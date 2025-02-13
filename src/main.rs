@@ -31,6 +31,9 @@ type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
 const SPEED: i16 = 100;
 
+use defmt_rtt as _;
+use embassy_stm32 as _;
+use panic_probe as _;
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
@@ -105,7 +108,7 @@ async fn follow_line(
 ) {
     loop {
         Timer::after_nanos(50).await;
-        // Todo: refactor and tests
+
         match sensor.read() {
             LinePos::NoLine => {
                 left_motor.stop();
