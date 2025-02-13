@@ -18,7 +18,7 @@ use embassy_executor::Spawner;
 use embassy_stm32::{
     gpio::{Input, Level, Output, OutputType, Pull, Speed},
     peripherals::{TIM2, TIM3},
-    time::khz,
+    time::hz,
     timer::simple_pwm::{PwmPin, SimplePwm, SimplePwmChannel},
 };
 use embassy_time::Timer;
@@ -49,7 +49,7 @@ async fn main(spawner: Spawner) {
         Some(pwm_pin),
         None,
         None,
-        khz(10),
+        hz(200),
         Default::default(),
     );
     let mut ch2 = pwm.split().ch2;
@@ -70,7 +70,7 @@ async fn main(spawner: Spawner) {
         None,
         Some(pwm_pin),
         None,
-        khz(10),
+        hz(200),
         Default::default(),
     );
     let mut ch3 = pwm2.split().ch3;
@@ -116,11 +116,11 @@ async fn follow_line(
                 continue;
             }
             LinePos::Lefter => {
-                left_motor.run(SPEED / 2);
-                right_motor.run((SPEED as f32 / 1.25) as i16);
+                left_motor.run(-SPEED * 10 / 15);
+                right_motor.run(SPEED * 100 / 125);
             }
             LinePos::Left => {
-                left_motor.run(SPEED / 2);
+                left_motor.run(SPEED * 10 / 15);
                 right_motor.run(SPEED);
             }
             LinePos::Middle => {
@@ -132,8 +132,8 @@ async fn follow_line(
                 right_motor.run(SPEED / 2);
             }
             LinePos::Righter => {
-                left_motor.run((SPEED as f32 / 1.25) as i16);
-                right_motor.run(SPEED / 2);
+                left_motor.run(SPEED * 100 / 125);
+                right_motor.run(-SPEED * 10 / 15);
             }
         };
     }
