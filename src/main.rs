@@ -59,7 +59,7 @@ async fn main(spawner: Spawner) {
         ch2,
         Output::new(p.PB6, Level::Low, Speed::Low),
         Output::new(p.PC7, Level::Low, Speed::Low),
-        0,
+        0,` 1`
         Default::default(),
     );
 
@@ -116,8 +116,8 @@ async fn follow_line(
                 continue;
             }
             LinePos::Lefter => {
-                left_motor.run(-SPEED / 2);
-                right_motor.run(SPEED);
+                left_motor.run(SPEED/2);
+                right_motor.run((SPEED as f32 / 1.25) as i16);
             }
             LinePos::Left => {
                 left_motor.run(SPEED / 2);
@@ -132,8 +132,8 @@ async fn follow_line(
                 right_motor.run(SPEED / 2);
             }
             LinePos::Righter => {
-                left_motor.run(SPEED);
-                right_motor.run(-SPEED / 2);
+                left_motor.run((SPEED as f32 / 1.25) as i16);
+                right_motor.run(SPEED/2);
             }
         };
     }
