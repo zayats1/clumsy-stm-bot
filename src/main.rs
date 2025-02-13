@@ -59,7 +59,7 @@ async fn main(spawner: Spawner) {
         ch2,
         Output::new(p.PB6, Level::Low, Speed::Low),
         Output::new(p.PC7, Level::Low, Speed::Low),
-        0,` 1`
+        0
         Default::default(),
     );
 
