@@ -12,7 +12,7 @@ impl<T: InputPin> LineSensor<T> {
     }
 
     pub fn is_on_line(&mut self) -> bool {
-        self.pin.is_low().unwrap()
+        self.pin.is_high().unwrap()
     }
 }
 

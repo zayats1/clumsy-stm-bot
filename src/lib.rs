@@ -5,7 +5,6 @@ use defmt_rtt as _;
 use embassy_stm32 as _;
 use panic_probe as _;
 
-pub mod conversions;
 pub mod drivers;
 
 // same panicking *behavior* as `panic-probe` but doesn't print a panic message
@@ -20,7 +19,7 @@ fn panic() -> ! {
 mod unit_tests {
     use defmt::assert;
     #[test]
-    fn line_to_speed() {
+    fn some_test() {
         //Todo actual unit tests
         assert!(true)
     }
