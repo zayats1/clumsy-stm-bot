@@ -29,7 +29,7 @@ type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
 type RightMotor<'a> = Motor<SimplePwmChannel<'a, TIM2>, Output<'a>, Output<'a>>;
 type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
-const SPEED: i16 = 100;
+const SPEED: i16 = 80;
 
 use defmt_rtt as _;
 use embassy_stm32 as _;
@@ -117,22 +117,22 @@ async fn follow_line(
             }
             LinePos::Lefter => {
                 left_motor.run(-SPEED * 10 / 15);
-                right_motor.run(SPEED * 100 / 125);
+                right_motor.run(SPEED * 100 / 15);
             }
             LinePos::Left => {
                 left_motor.run(SPEED * 10 / 15);
-                right_motor.run(SPEED);
+                right_motor.run(SPEED * 100 / 125);
             }
             LinePos::Middle => {
                 left_motor.run(SPEED);
                 right_motor.run(SPEED);
             }
             LinePos::Right => {
-                left_motor.run(SPEED);
-                right_motor.run(SPEED / 2);
+                left_motor.run(SPEED * 100 / 125);
+                right_motor.run(SPEED * 10 / 15);
             }
             LinePos::Righter => {
-                left_motor.run(SPEED * 100 / 125);
+                left_motor.run(SPEED * 10 / 15);
                 right_motor.run(-SPEED * 10 / 15);
             }
         };
