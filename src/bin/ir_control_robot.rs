@@ -4,13 +4,13 @@
 #![no_std]
 #![no_main]
 
-use core::f32::consts::PI;
-
+use defmt_rtt as _;
+use embassy_stm32 as _;
+use panic_probe as _;
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use clumsy_stm_bot::{
     self as _,
-    conversions::angle_to_speed::angle_to_speed,
     drivers::{
         line_sensor::{LinePos, TrippleLineSensor},
         motor::Motor,
@@ -108,26 +108,33 @@ async fn follow_line(
 ) {
     loop {
         Timer::after_nanos(50).await;
-        // Todo: refactor and tests
-        let angle: f32 = match sensor.read() {
+
+        match sensor.read() {
             LinePos::NoLine => {
                 left_motor.stop();
                 right_motor.stop();
                 continue;
             }
-            LinePos::Lefter => -PI / 6.0,
-            LinePos::Left => -PI / 12.0,
-            LinePos::Middle => 0.0,
-            LinePos::Right => PI / 12.0,
-            LinePos::Righter => PI / 6.0,
+            LinePos::Lefter => {
+                left_motor.run(-SPEED / 2);
+                right_motor.run(SPEED);
+            }
+            LinePos::Left => {
+                left_motor.run(SPEED / 2);
+                right_motor.run(SPEED);
+            }
+            LinePos::Middle => {
+                left_motor.run(SPEED);
+                right_motor.run(SPEED);
+            }
+            LinePos::Right => {
+                left_motor.run(SPEED);
+                right_motor.run(SPEED / 2);
+            }
+            LinePos::Righter => {
+                left_motor.run(SPEED);
+                right_motor.run(-SPEED / 2);
+            }
         };
-
-        let (left_speed, right_speed) = if angle < 0.0 {
-            (angle_to_speed(SPEED as f32, angle), SPEED)
-        } else {
-            (SPEED, angle_to_speed(SPEED as f32, angle))
-        };
-        left_motor.run(left_speed);
-        right_motor.run(right_speed);
     }
 }
