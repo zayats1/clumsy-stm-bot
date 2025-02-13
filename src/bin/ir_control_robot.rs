@@ -4,6 +4,9 @@
 #![no_std]
 #![no_main]
 
+use defmt_rtt as _;
+use embassy_stm32 as _;
+use panic_probe as _;
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use clumsy_stm_bot::{
@@ -18,7 +21,7 @@ use embassy_executor::Spawner;
 use embassy_stm32::{
     gpio::{Input, Level, Output, OutputType, Pull, Speed},
     peripherals::{TIM2, TIM3},
-    time::hz,
+    time::khz,
     timer::simple_pwm::{PwmPin, SimplePwm, SimplePwmChannel},
 };
 use embassy_time::Timer;
@@ -29,11 +32,8 @@ type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
 type RightMotor<'a> = Motor<SimplePwmChannel<'a, TIM2>, Output<'a>, Output<'a>>;
 type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
-const SPEED: i16 = 80;
+const SPEED: i16 = 100;
 
-use defmt_rtt as _;
-use embassy_stm32 as _;
-use panic_probe as _;
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
@@ -49,7 +49,7 @@ async fn main(spawner: Spawner) {
         Some(pwm_pin),
         None,
         None,
-        hz(200),
+        khz(10),
         Default::default(),
     );
     let mut ch2 = pwm.split().ch2;
@@ -70,7 +70,7 @@ async fn main(spawner: Spawner) {
         None,
         Some(pwm_pin),
         None,
-        hz(200),
+        khz(10),
         Default::default(),
     );
     let mut ch3 = pwm2.split().ch3;
@@ -116,24 +116,24 @@ async fn follow_line(
                 continue;
             }
             LinePos::Lefter => {
-                left_motor.run(-SPEED * 10 / 15);
-                right_motor.run(SPEED * 100 / 15);
+                left_motor.run(-SPEED / 2);
+                right_motor.run(SPEED);
             }
             LinePos::Left => {
-                left_motor.run(SPEED * 10 / 15);
-                right_motor.run(SPEED * 100 / 125);
+                left_motor.run(SPEED / 2);
+                right_motor.run(SPEED);
             }
             LinePos::Middle => {
                 left_motor.run(SPEED);
                 right_motor.run(SPEED);
             }
             LinePos::Right => {
-                left_motor.run(SPEED * 100 / 125);
-                right_motor.run(SPEED * 10 / 15);
+                left_motor.run(SPEED);
+                right_motor.run(SPEED / 2);
             }
             LinePos::Righter => {
-                left_motor.run(SPEED * 10 / 15);
-                right_motor.run(-SPEED * 10 / 15);
+                left_motor.run(SPEED);
+                right_motor.run(-SPEED / 2);
             }
         };
     }

@@ -12,7 +12,7 @@ impl<T: InputPin> LineSensor<T> {
     }
 
     pub fn is_on_line(&mut self) -> bool {
-        self.pin.is_low().unwrap()
+        self.pin.is_high().unwrap()
     }
 }
 
@@ -55,9 +55,7 @@ where
         } else if self.left.is_on_line() && self.middle.is_on_line() && !self.right.is_on_line() {
             debug!("Left");
             LinePos::Left
-        } else if (!self.left.is_on_line() && self.middle.is_on_line() && !self.right.is_on_line())
-            || (self.left.is_on_line() && self.middle.is_on_line() && self.right.is_on_line())
-        {
+        } else if !self.left.is_on_line() && self.middle.is_on_line() && !self.right.is_on_line() {
             debug!("Middle");
             LinePos::Middle
         } else if !self.left.is_on_line() && self.middle.is_on_line() && self.right.is_on_line() {

@@ -41,13 +41,13 @@ libm = "0.2.11"
 # cargo build/run
 
 [dev-dependencies]
-embedded-test = { version = "0.6" }
+embedded-test = { version = "0.6", features = ["embassy"] }
 rtt-target = { version = "0.6", features = ["defmt"] }
+
 
 [[test]]
 name = "integration"
 harness = false
-
 
 [lib]
 harness = false
