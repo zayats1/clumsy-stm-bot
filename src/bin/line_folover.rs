@@ -1,14 +1,9 @@
-// This file is for development and debuging
-
 //! Blinks the LED on a Pico board
 //!
 //! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
 
-use defmt_rtt as _;
-use embassy_stm32 as _;
-use panic_probe as _;
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use clumsy_stm_bot::{
@@ -23,7 +18,7 @@ use embassy_executor::Spawner;
 use embassy_stm32::{
     gpio::{Input, Level, Output, OutputType, Pull, Speed},
     peripherals::{TIM2, TIM3},
-    time::khz,
+    time::hz,
     timer::simple_pwm::{PwmPin, SimplePwm, SimplePwmChannel},
 };
 use embassy_time::Timer;
@@ -34,8 +29,11 @@ type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
 type RightMotor<'a> = Motor<SimplePwmChannel<'a, TIM2>, Output<'a>, Output<'a>>;
 type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
-const SPEED: i16 = 100;
+const SPEED: i16 = 80;
 
+use defmt_rtt as _;
+use embassy_stm32 as _;
+use panic_probe as _;
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
@@ -51,7 +49,7 @@ async fn main(spawner: Spawner) {
         Some(pwm_pin),
         None,
         None,
-        khz(10),
+        hz(200),
         Default::default(),
     );
     let mut ch2 = pwm.split().ch2;
@@ -72,7 +70,7 @@ async fn main(spawner: Spawner) {
         None,
         Some(pwm_pin),
         None,
-        khz(10),
+        hz(200),
         Default::default(),
     );
     let mut ch3 = pwm2.split().ch3;
@@ -86,12 +84,12 @@ async fn main(spawner: Spawner) {
         Default::default(),
     );
     let line_sensor = TrippleLineSensor::new(
-        Input::new(p.PB4, Pull::Down),
-        Input::new(p.PB5, Pull::Down),
-        Input::new(p.PB3, Pull::Down),
+        Input::new(p.PB4, Pull::Up),
+        Input::new(p.PB5, Pull::Up),
+        Input::new(p.PB3, Pull::Up),
     );
 
-    spawner.must_spawn(ride(line_sensor, left_motor, right_motor));
+    spawner.must_spawn(follow_line(line_sensor, left_motor, right_motor));
 }
 
 #[embassy_executor::task]
@@ -103,20 +101,40 @@ async fn blink(mut led: Output<'static>) {
 }
 
 #[embassy_executor::task]
-async fn decode_ir() {
-    loop {
-        Timer::after_nanos(50).await;
-    }
-}
-
-#[embassy_executor::task]
-async fn ride(
+async fn follow_line(
     mut sensor: MyLineSensor<'static>,
     mut left_motor: LeftMotor<'static>,
     mut right_motor: RightMotor<'static>,
 ) {
     loop {
         Timer::after_nanos(50).await;
-        if sensor.read() == LinePos::NoLine {}
+
+        match sensor.read() {
+            LinePos::NoLine => {
+                left_motor.stop();
+                right_motor.stop();
+                continue;
+            }
+            LinePos::Lefter => {
+                left_motor.run(-SPEED * 10 / 15);
+                right_motor.run(SPEED * 100 / 15);
+            }
+            LinePos::Left => {
+                left_motor.run(SPEED * 10 / 15);
+                right_motor.run(SPEED * 100 / 125);
+            }
+            LinePos::Middle => {
+                left_motor.run(SPEED);
+                right_motor.run(SPEED);
+            }
+            LinePos::Right => {
+                left_motor.run(SPEED * 100 / 125);
+                right_motor.run(SPEED * 10 / 15);
+            }
+            LinePos::Righter => {
+                left_motor.run(SPEED * 10 / 15);
+                right_motor.run(-SPEED * 10 / 15);
+            }
+        };
     }
 }
