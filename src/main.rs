@@ -7,7 +7,7 @@
 #![no_main]
 
 use defmt_rtt as _;
-use embassy_stm32 as _;
+use embassy_stm32::{self as _, timer::pwm_input::PwmInput};
 use panic_probe as _;
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
@@ -91,6 +91,7 @@ async fn main(spawner: Spawner) {
         Input::new(p.PB3, Pull::Down),
     );
 
+    let mut ir_reader = PwmInput::new(p.TIM16, p.PA6, Pull::None, khz(38));
     spawner.must_spawn(ride(line_sensor, left_motor, right_motor));
 }
 
@@ -117,6 +118,7 @@ async fn ride(
 ) {
     loop {
         Timer::after_nanos(50).await;
+        // detect falling from the desk
         if sensor.read() == LinePos::NoLine {}
     }
 }
