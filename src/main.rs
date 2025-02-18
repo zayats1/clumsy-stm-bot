@@ -6,25 +6,26 @@
 #![no_std]
 #![no_main]
 
+use defmt::info;
 use defmt_rtt as _;
-use embassy_stm32::{self as _, timer::pwm_input::PwmInput};
+
 use panic_probe as _;
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
-use clumsy_stm_bot::{
-    self as _,
-    drivers::{
-        line_sensor::{LinePos, TrippleLineSensor},
-        motor::Motor,
-    },
-};
+use clumsy_stm_bot::{self as _, drivers::motor::Motor};
 
 use embassy_executor::Spawner;
 use embassy_stm32::{
+    self as _, bind_interrupts,
     gpio::{Input, Level, Output, OutputType, Pull, Speed},
     peripherals::{TIM2, TIM3},
     time::khz,
-    timer::simple_pwm::{PwmPin, SimplePwm, SimplePwmChannel},
+    timer::{
+        self,
+        input_capture::{CapturePin, InputCapture},
+        simple_pwm::{PwmPin, SimplePwm, SimplePwmChannel},
+    },
+    Peripheral,
 };
 use embassy_time::Timer;
 
@@ -46,7 +47,7 @@ async fn main(spawner: Spawner) {
     let pwm_pin = PwmPin::new_ch2(p.PA7, OutputType::PushPull);
 
     let pwm = SimplePwm::new(
-        p.TIM3,
+        unsafe { p.TIM3.clone_unchecked() },
         None,
         Some(pwm_pin),
         None,
@@ -91,7 +92,19 @@ async fn main(spawner: Spawner) {
         Input::new(p.PB3, Pull::Down),
     );
 
-    let mut ir_reader = PwmInput::new(p.TIM16, p.PA6, Pull::None, khz(38));
+    let ch1 = CapturePin::new_ch1(p.PA6, Pull::Down);
+    let ir_reader = InputCapture::new(
+        p.TIM3,
+        Some(ch1),
+        None,
+        None,
+        None,
+        Irqs,
+        khz(38),
+        Default::default(),
+    );
+
+    spawner.must_spawn(decode_ir(ir_reader));
     spawner.must_spawn(ride(line_sensor, left_motor, right_motor));
 }
 
@@ -103,10 +116,47 @@ async fn blink(mut led: Output<'static>) {
     }
 }
 
+bind_interrupts!(struct Irqs {
+    TIM3 => timer::CaptureCompareInterruptHandler<TIM3>; //Todo write the exact timer
+});
+
 #[embassy_executor::task]
-async fn decode_ir() {
+async fn decode_ir(mut ir: InputCapture<'static, TIM3>) {
+    let mut prev_capture = 0i64;
+
+    ir.set_input_capture_mode(
+        timer::Channel::Ch1,
+        timer::low_level::InputCaptureMode::BothEdges,
+    );
+    let mut bit_idx = 0;
+    let mut temp_code = 0u32;
+
     loop {
+        // info!("interrupt {}", it);
+        ir.wait_for_rising_edge(timer::Channel::Ch1).await;
+
+        let capture_value = ir.get_capture_value(timer::Channel::Ch1) as i64;
+        let current_val = (capture_value - prev_capture).abs();
+        //  info!("new capture! {}", capture_value);
+
+        if current_val > 8000 {
+            temp_code = 0;
+            bit_idx = 0;
+        } else if current_val > 1700 {
+            temp_code |= 1 << (31 - bit_idx); // write 1
+            bit_idx += 1;
+        } else if current_val > 1000 {
+            temp_code &= !(1 << (31 - bit_idx)); // write 0
+            bit_idx += 1;
+        }
+
+        if bit_idx >= 4 {
+            info!("new code!{}, as bin {:b}", temp_code, temp_code);
+            bit_idx = 0;
+        }
+
         Timer::after_nanos(50).await;
+        prev_capture = capture_value;
     }
 }
 
@@ -119,6 +169,5 @@ async fn ride(
     loop {
         Timer::after_nanos(50).await;
         // detect falling from the desk
-        if sensor.read() == LinePos::NoLine {}
     }
 }
