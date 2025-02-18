@@ -86,11 +86,6 @@ async fn main(spawner: Spawner) {
         0,
         Default::default(),
     );
-    let line_sensor = TrippleLineSensor::new(
-        Input::new(p.PB4, Pull::Down),
-        Input::new(p.PB5, Pull::Down),
-        Input::new(p.PB3, Pull::Down),
-    );
 
     let ch1 = CapturePin::new_ch1(p.PA6, Pull::Down);
     let ir_reader = InputCapture::new(
@@ -105,7 +100,7 @@ async fn main(spawner: Spawner) {
     );
 
     spawner.must_spawn(decode_ir(ir_reader));
-    spawner.must_spawn(ride(line_sensor, left_motor, right_motor));
+    spawner.must_spawn(ride(left_motor, right_motor));
 }
 
 #[embassy_executor::task]
@@ -161,11 +156,7 @@ async fn decode_ir(mut ir: InputCapture<'static, TIM3>) {
 }
 
 #[embassy_executor::task]
-async fn ride(
-    mut sensor: MyLineSensor<'static>,
-    mut left_motor: LeftMotor<'static>,
-    mut right_motor: RightMotor<'static>,
-) {
+async fn ride(mut left_motor: LeftMotor<'static>, mut right_motor: RightMotor<'static>) {
     loop {
         Timer::after_nanos(50).await;
         // detect falling from the desk
