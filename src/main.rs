@@ -94,7 +94,7 @@ async fn main(spawner: Spawner) {
         None,
         None,
         Irqs,
-        khz(38),
+        khz(40),
         Default::default(),
     );
 
@@ -117,21 +117,21 @@ bind_interrupts!(struct Irqs {
 #[embassy_executor::task]
 async fn decode_ir(mut ir: InputCapture<'static, TIM3>) {
     let mut prev_capture = 0i64;
+    let mut bit_idx = 0;
+    let mut temp_code = 0u32;
 
     ir.set_input_capture_mode(
         timer::Channel::Ch1,
         timer::low_level::InputCaptureMode::BothEdges,
     );
-    let mut bit_idx = 0;
-    let mut temp_code = 0u32;
 
     loop {
         // info!("interrupt {}", it);
         ir.wait_for_rising_edge(timer::Channel::Ch1).await;
-
         let capture_value = ir.get_capture_value(timer::Channel::Ch1) as i64;
         let current_val = (capture_value - prev_capture).abs();
-        //  info!("new capture! {}", capture_value);
+
+        info!("new capture! {}", current_val);
 
         if current_val > 8000 {
             temp_code = 0;
@@ -144,8 +144,9 @@ async fn decode_ir(mut ir: InputCapture<'static, TIM3>) {
             bit_idx += 1;
         }
 
-        if bit_idx >= 4 {
-            info!("new code!{}, as bin {:b}", temp_code, temp_code);
+        info!("new code! {}, as bin {:b}", temp_code, temp_code);
+        if bit_idx >= 32 {
+            info!("Received complete frame: {:b}", temp_code);
             bit_idx = 0;
         }
 
