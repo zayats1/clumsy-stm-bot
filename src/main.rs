@@ -9,13 +9,15 @@
 use clumsy_stm_bot::{
     self as _,
     drivers::{
-        line_sensor::{LinePos, TrippleLineSensor},
+        // line_sensor::{LinePos, TrippleLineSensor},
         motor::Motor,
+        sonar::Sonar,
     },
 };
 
 use embassy_executor::Spawner;
 use embassy_stm32::{
+    exti::ExtiInput,
     gpio::{Input, Level, Output, OutputType, Pull, Speed},
     peripherals::{TIM2, TIM3},
     time::hz,
@@ -27,9 +29,10 @@ use clumsy_stm_bot as _;
 
 type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
 type RightMotor<'a> = Motor<SimplePwmChannel<'a, TIM2>, Output<'a>, Output<'a>>;
-type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
+type MySonar<'a> = Sonar<Output<'a>, ExtiInput<'a>>;
+// type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
-const SPEED: i16 = 80;
+const SPEED: i16 = 100;
 
 use defmt_rtt as _;
 use embassy_stm32 as _;
@@ -83,13 +86,26 @@ async fn main(spawner: Spawner) {
         0,
         Default::default(),
     );
-    let line_sensor = TrippleLineSensor::new(
-        Input::new(p.PB4, Pull::Down),
-        Input::new(p.PB5, Pull::Down),
-        Input::new(p.PB3, Pull::Down),
-    );
+    // let line_sensor = TrippleLineSensor::new(
+    //     Input::new(p.PB4, Pull::Down),
+    //     Input::new(p.PB5, Pull::Down),
+    //     Input::new(p.PB3, Pull::Down),
+    // );
+}
 
-    spawner.must_spawn(follow_line(line_sensor, left_motor, right_motor));
+#[embassy_executor::task]
+async fn read_sonar(mut sonar: MySonar<'static>) {
+    loop {
+        let distance_cm = sonar.read().await;
+        Timer::after_nanos(50).await;
+    }
+}
+
+#[embassy_executor::task]
+async fn roam(mut left: LeftMotor<'static>, mut right: RightMotor<'static>) {
+    loop {
+        Timer::after_nanos(50).await;
+    }
 }
 
 #[embassy_executor::task]
@@ -97,44 +113,5 @@ async fn blink(mut led: Output<'static>) {
     loop {
         led.toggle();
         Timer::after_millis(500).await;
-    }
-}
-
-#[embassy_executor::task]
-async fn follow_line(
-    mut sensor: MyLineSensor<'static>,
-    mut left_motor: LeftMotor<'static>,
-    mut right_motor: RightMotor<'static>,
-) {
-    loop {
-        Timer::after_nanos(50).await;
-
-        match sensor.read() {
-            LinePos::NoLine => {
-                left_motor.stop();
-                right_motor.stop();
-                continue;
-            }
-            LinePos::Lefter => {
-                left_motor.run(-SPEED * 10 / 15);
-                right_motor.run(SPEED * 100 / 15);
-            }
-            LinePos::Left => {
-                left_motor.run(SPEED * 10 / 15);
-                right_motor.run(SPEED * 100 / 125);
-            }
-            LinePos::Middle => {
-                left_motor.run(SPEED);
-                right_motor.run(SPEED);
-            }
-            LinePos::Right => {
-                left_motor.run(SPEED * 100 / 125);
-                right_motor.run(SPEED * 10 / 15);
-            }
-            LinePos::Righter => {
-                left_motor.run(SPEED * 10 / 15);
-                right_motor.run(-SPEED * 10 / 15);
-            }
-        };
     }
 }
