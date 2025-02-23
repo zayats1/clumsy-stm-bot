@@ -31,7 +31,7 @@ where
         self.trig().await;
         self.sonar_pin.wait_for_high().await.unwrap();
         let duration = time.elapsed();
-        let distance = (duration.as_micros() * 343 / 10000) / 2; //cm
+        let distance = (duration.as_micros() * 343 / 1000) / 2; //mm
         return distance;
     }
 }
