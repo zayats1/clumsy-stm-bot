@@ -16,7 +16,7 @@ impl<T: InputPin> LineSensor<T> {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, defmt::Format)]
+#[derive(Debug, Default, Clone, Copy, defmt::Format, PartialEq)]
 pub enum LinePos {
     #[default]
     NoLine,
