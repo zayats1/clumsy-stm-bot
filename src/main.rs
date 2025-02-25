@@ -115,7 +115,8 @@ async fn main(spawner: Spawner) {
 #[embassy_executor::task]
 async fn read_sonar(sender: MySender<'static>, mut sonar: MySonar<'static>) {
     loop {
-        let distance_mm = sonar.read().await;
+        //let distance_mm = sonar.read().await;
+        let distance_mm = 18;
         debug!("distance to obstacle: {}mm", distance_mm);
         sender.send(distance_mm).await;
         Timer::after_nanos(50).await;
@@ -138,13 +139,13 @@ async fn roam(
         }
 
         if let Some(distance_mm) = receiver.try_receive().ok() {
-            if distance_mm <= 20 {
-                left.stop();
-                right.stop();
+            if distance_mm >= 20 {
+                left.run(speed);
+                right.run(speed);
             }
         } else {
-            left.run(speed);
-            right.run(speed);
+            left.stop();
+            right.stop();
         }
 
         Timer::after_nanos(50).await;
