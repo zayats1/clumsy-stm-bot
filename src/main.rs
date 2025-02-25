@@ -137,15 +137,16 @@ async fn roam(
             right.stop();
         }
 
-        left.run(speed);
-        right.run(speed);
-
         if let Some(distance_mm) = receiver.try_receive().ok() {
             if distance_mm <= 20 {
                 left.stop();
                 right.stop();
             }
+        } else {
+            left.run(speed);
+            right.run(speed);
         }
+
         Timer::after_nanos(50).await;
     }
 }
