@@ -140,8 +140,8 @@ async fn roam(
 
         if let Some(distance_mm) = receiver.try_receive().ok() {
             if distance_mm >= 20 {
-                left.run(speed);
-                right.run(speed);
+                // left.run(speed);
+                // right.run(speed);
             }
         } else {
             left.stop();

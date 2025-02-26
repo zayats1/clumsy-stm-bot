@@ -1,3 +1,4 @@
+use defmt::{dbg, debug};
 use embassy_time::{Delay, Instant, Timer};
 use embedded_hal::{
     delay::DelayNs,
@@ -30,12 +31,15 @@ where
         self.trig_pin.set_high().unwrap();
         self.delay.delay_us(10);
         self.trig_pin.set_low().unwrap();
+
         let time = Instant::now();
-        self.sonar_pin.wait_for_high().await.unwrap();
-        //   self.sonar_pin.wait_for_low().await.unwrap();
+        self.sonar_pin.wait_for_falling_edge().await.unwrap();
+
+        self.sonar_pin.wait_for_rising_edge().await.unwrap();
+
         let duration = time.elapsed();
-        let distance = duration.as_micros() + 4; // mm
-        defmt::debug!("{:?}", duration);
+        debug!("{:?}", duration);
+        let distance = duration.as_micros() * 343 / 1000;
         return distance;
     }
 }
