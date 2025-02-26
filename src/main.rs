@@ -115,8 +115,8 @@ async fn main(spawner: Spawner) {
 #[embassy_executor::task]
 async fn read_sonar(sender: MySender<'static>, mut sonar: MySonar<'static>) {
     loop {
-        //let distance_mm = sonar.read().await;
-        let distance_mm = 18;
+        let distance_mm = sonar.read().await;
+
         debug!("distance to obstacle: {}mm", distance_mm);
         sender.send(distance_mm).await;
         Timer::after_nanos(50).await;

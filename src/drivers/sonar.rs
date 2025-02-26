@@ -1,10 +1,14 @@
-use embassy_time::{Instant, Timer};
-use embedded_hal::digital::{InputPin, OutputPin};
+use embassy_time::{Delay, Instant, Timer};
+use embedded_hal::{
+    delay::DelayNs,
+    digital::{InputPin, OutputPin},
+};
 use embedded_hal_async::digital::Wait;
-#[derive(Debug, Default, Clone, Copy, defmt::Format)]
+#[derive(Clone)]
 pub struct Sonar<T: OutputPin, U: InputPin + Wait> {
     trig_pin: T,
     sonar_pin: U,
+    delay: Delay,
 }
 
 impl<T, U> Sonar<T, U>
@@ -16,22 +20,22 @@ where
         Self {
             trig_pin,
             sonar_pin,
+            delay: Delay,
         }
     }
 
-    async fn trig(&mut self) {
-        self.trig_pin.set_low().unwrap();
-        Timer::after_micros(2).await;
-        self.trig_pin.set_high().unwrap();
-        Timer::after_micros(2).await;
-        self.trig_pin.set_low().unwrap();
-    }
     pub async fn read(&mut self) -> u64 {
+        self.trig_pin.set_low().unwrap();
+        self.delay.delay_us(2);
+        self.trig_pin.set_high().unwrap();
+        self.delay.delay_us(10);
+        self.trig_pin.set_low().unwrap();
         let time = Instant::now();
-        self.trig().await;
         self.sonar_pin.wait_for_high().await.unwrap();
+        //   self.sonar_pin.wait_for_low().await.unwrap();
         let duration = time.elapsed();
-        let distance = (duration.as_micros() * 343 / 1000) / 2; //mm
+        let distance = duration.as_micros() + 4; // mm
+        defmt::debug!("{:?}", duration);
         return distance;
     }
 }
