@@ -15,7 +15,7 @@ async fn main(_spawner: Spawner) {
     info!("Hello World!");
 
     let trigger = Output::new(p.PC0, Level::Low, Speed::High);
-    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::None);
+    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::Down);
 
     struct EmbassyClock;
 

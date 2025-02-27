@@ -37,7 +37,8 @@ embassy-sync = { version = "0.6.2", features = ["defmt"] }
 defmt-test = "0.3.2"
 libm = "0.2.11"
 embedded-hal-async = "1.0.0"
-hcsr04_async = "0.4.0"
+hcsr04_async = "0.4"
+
 
 # cargo build/run
 
