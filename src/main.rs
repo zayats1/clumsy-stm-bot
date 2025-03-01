@@ -1,11 +1,6 @@
-//! Blinks the LED on a Pico board
-//!
-//! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
 
-// Provide an alias for our BSP so we can switch targets quickly.
-// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use clumsy_stm_bot::{
     self as _,
     drivers::{
@@ -36,7 +31,7 @@ use embassy_sync::{
     blocking_mutex::raw::CriticalSectionRawMutex,
     channel::{Receiver, Sender},
 };
-use embassy_time::{Delay, Instant, Timer};
+use embassy_time::{Delay, Duration, Instant, Timer};
 use hcsr04_async::{DistanceUnit, Hcsr04, TemperatureUnit};
 
 type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
@@ -63,6 +58,8 @@ type MySender<'a> = Sender<'a, MyMutex, Distance, 1>;
 const TEMPERATURE: f64 = 18.0;
 
 const SPEED: i16 = 100;
+
+const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(60);
 
 static CHANNEL: Channel<MyMutex, Distance, 1> = Channel::new();
 
@@ -160,7 +157,7 @@ async fn read_sonar(sender: MySender<'static>, mut sonar: MySonar<'static>) {
             Err(err) => defmt::error!("{:?}", err),
         };
 
-        Timer::after_millis(10).await; // for sensor to catch up with the polling rate
+        Timer::after(SONAR_MEASURE_CYCLE).await; // for sensor to catch up with the polling rate
     }
 }
 
