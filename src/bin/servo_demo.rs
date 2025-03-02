@@ -37,11 +37,11 @@ async fn main(_spawner: Spawner) {
     let mut servo = Servo::new(ch3, 20u8, 180.0, max_duty);
 
     loop {
-        for angle in 0..120 {
+        for angle in 0..180 {
             servo.set_angle(angle as f32);
             Timer::after_millis(100).await;
         }
-        for angle in (0..120).rev() {
+        for angle in (0..180).rev() {
             servo.set_angle(angle as f32);
             Timer::after_millis(100).await;
         }
