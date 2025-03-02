@@ -193,6 +193,9 @@ async fn roam(
     mut right: RightMotor<'static>,
 ) {
     let speed = SPEED;
+
+    // center the sonar
+    servo.set_angle(90.0);
     loop {
         if line_sensor.read() != LinePos::NoLine {
             // Stumbled on Line
@@ -209,26 +212,26 @@ async fn roam(
             right.stop();
 
             servo.set_angle(180.0);
-            Timer::after_millis(200).await;
+            Timer::after_millis(300).await;
             let distance_cm_left = receiver.receive().await;
             servo.set_angle(0.0);
-            Timer::after_millis(200).await;
+            Timer::after_millis(300).await;
             let distance_cm_right = receiver.receive().await;
             servo.set_angle(90.0);
-            Timer::after_millis(200).await;
+            Timer::after_millis(300).await;
 
-            if distance_cm_left > distance_cm_right {
-                // turn left
+            if distance_cm_left <= MINIMUM_DISTANCE && distance_cm_right <= MINIMUM_DISTANCE {
+                // turn back
                 left.run(-speed);
-                right.run(speed);
+                right.run(-speed);
             } else if distance_cm_left < distance_cm_right {
                 // turn right
                 left.run(speed);
                 right.run(-speed);
             } else {
-                // turn back
+                // turn left
                 left.run(-speed);
-                right.run(-speed);
+                right.run(speed);
             }
             Timer::after_millis(500).await;
         }
