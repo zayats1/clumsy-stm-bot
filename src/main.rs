@@ -6,16 +6,17 @@ use clumsy_stm_bot::{
     drivers::{
         line_sensor::{LinePos, TrippleLineSensor},
         motor::Motor,
+        servo::Servo,
     },
 };
 
 use defmt_rtt as _;
 use embassy_executor::{InterruptExecutor, Spawner};
-use embassy_stm32::interrupt;
 use embassy_stm32::{
     self as _,
     interrupt::{InterruptExt, Priority},
 };
+use embassy_stm32::{interrupt, peripherals::TIM1};
 use panic_probe as _;
 
 use defmt::debug;
@@ -52,12 +53,15 @@ type Distance = f64;
 type MyMutex = CriticalSectionRawMutex;
 type MyReceiver<'a> = Receiver<'a, MyMutex, Distance, 1>;
 type MySender<'a> = Sender<'a, MyMutex, Distance, 1>;
+type MyServo<'a> = Servo<SimplePwmChannel<'a, TIM1>>;
 
 // The temperature of the environment, if known, can be used to adjust the speed of sound.
 // If unknown, an average estimate must be used.
 const TEMPERATURE: f64 = 18.0;
 
 const SPEED: i16 = 100;
+
+const MINIMUM_DISTANCE: f64 = 6.0; // cm
 
 const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(60);
 
@@ -68,9 +72,6 @@ static EXECUTOR_MED: InterruptExecutor = InterruptExecutor::new();
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
-
-    let led = Output::new(p.PA5, Level::High, Speed::High);
-    spawner.spawn(blink(led)).unwrap();
 
     let pwm_pin = PwmPin::new_ch2(p.PA7, OutputType::PushPull);
 
@@ -139,9 +140,31 @@ async fn main(spawner: Spawner) {
     // Medium-priority executor: UART5, priority level 7
     interrupt::UART5.set_priority(Priority::P7);
     let mp_spawner = EXECUTOR_MED.start(interrupt::UART5);
+
+    let led = Output::new(p.PA5, Level::High, Speed::High);
+
+    let ch3_pin = PwmPin::new_ch3(p.PA10, OutputType::PushPull);
+    let pwm = SimplePwm::new(
+        p.TIM1,
+        None,
+        None,
+        Some(ch3_pin),
+        None,
+        hz(50),
+        Default::default(),
+    );
+
+    let mut ch3 = pwm.split().ch3;
+    ch3.enable();
+
+    let max_duty = ch3.max_duty_cycle();
+
+    let servo = Servo::new(ch3, 20u8, 180.0, max_duty);
+
+    spawner.spawn(blink(led)).unwrap();
     mp_spawner.must_spawn(read_sonar(sender, sonar));
 
-    spawner.must_spawn(roam(receiver, line_sensor, left_motor, right_motor));
+    spawner.must_spawn(roam(receiver, line_sensor, servo, left_motor, right_motor));
 }
 
 #[embassy_executor::task]
@@ -165,6 +188,7 @@ async fn read_sonar(sender: MySender<'static>, mut sonar: MySonar<'static>) {
 async fn roam(
     receiver: MyReceiver<'static>,
     mut line_sensor: MyLineSensor<'static>,
+    mut servo: MyServo<'static>,
     mut left: LeftMotor<'static>,
     mut right: RightMotor<'static>,
 ) {
@@ -177,12 +201,36 @@ async fn roam(
         }
 
         let distance_cm = receiver.receive().await;
-        if distance_cm >= 6.0 {
+        if distance_cm >= MINIMUM_DISTANCE {
             left.run(speed);
             right.run(speed);
         } else {
             left.stop();
             right.stop();
+
+            servo.set_angle(180.0);
+            Timer::after_millis(200).await;
+            let distance_cm_left = receiver.receive().await;
+            servo.set_angle(0.0);
+            Timer::after_millis(200).await;
+            let distance_cm_right = receiver.receive().await;
+            servo.set_angle(90.0);
+            Timer::after_millis(200).await;
+
+            if distance_cm_left > distance_cm_right {
+                // turn left
+                left.run(-speed);
+                right.run(speed);
+            } else if distance_cm_left < distance_cm_right {
+                // turn right
+                left.run(speed);
+                right.run(-speed);
+            } else {
+                // turn back
+                left.run(-speed);
+                right.run(-speed);
+            }
+            Timer::after_millis(500).await;
         }
 
         Timer::after_nanos(50).await;
