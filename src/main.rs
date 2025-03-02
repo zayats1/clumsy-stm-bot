@@ -1,23 +1,24 @@
-//! Blinks the LED on a Pico board
-//!
-//! This will blink an LED attached to GP25, which is the pin the Pico uses for the on-board LED.
 #![no_std]
 #![no_main]
 
-// Provide an alias for our BSP so we can switch targets quickly.
-// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use clumsy_stm_bot::{
     self as _,
     drivers::{
         line_sensor::{LinePos, TrippleLineSensor},
         motor::Motor,
-        sonar::Sonar,
     },
 };
 
-use clumsy_stm_bot as _;
+use defmt_rtt as _;
+use embassy_executor::{InterruptExecutor, Spawner};
+use embassy_stm32::interrupt;
+use embassy_stm32::{
+    self as _,
+    interrupt::{InterruptExt, Priority},
+};
+use panic_probe as _;
+
 use defmt::debug;
-use embassy_executor::Spawner;
 use embassy_stm32::{
     exti::ExtiInput,
     gpio::{Input, Level, Output, OutputType, Pull, Speed},
@@ -25,26 +26,44 @@ use embassy_stm32::{
     time::hz,
     timer::simple_pwm::{PwmPin, SimplePwm, SimplePwmChannel},
 };
-use embassy_sync::channel::{Receiver, Sender};
-use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, channel::Channel};
-use embassy_time::Timer;
+use embassy_sync::channel::Channel;
+use embassy_sync::{
+    blocking_mutex::raw::CriticalSectionRawMutex,
+    channel::{Receiver, Sender},
+};
+use embassy_time::{Delay, Duration, Instant, Timer};
+use hcsr04_async::{DistanceUnit, Hcsr04, TemperatureUnit};
 
 type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
 type RightMotor<'a> = Motor<SimplePwmChannel<'a, TIM2>, Output<'a>, Output<'a>>;
 
-type MySonar<'a> = Sonar<Output<'a>, ExtiInput<'a>>;
+struct EmbassyClock;
+
+impl hcsr04_async::Now for EmbassyClock {
+    fn now_micros(&self) -> u64 {
+        Instant::now().as_micros()
+    }
+}
+
+type MySonar<'a> = Hcsr04<Output<'a>, ExtiInput<'a>, EmbassyClock, Delay>;
 type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
-type MyReceiver<'a> = Receiver<'a, ThreadModeRawMutex, u64, 1>;
-type MySender<'a> = Sender<'a, ThreadModeRawMutex, u64, 1>;
+type Distance = f64;
+type MyMutex = CriticalSectionRawMutex;
+type MyReceiver<'a> = Receiver<'a, MyMutex, Distance, 1>;
+type MySender<'a> = Sender<'a, MyMutex, Distance, 1>;
+
+// The temperature of the environment, if known, can be used to adjust the speed of sound.
+// If unknown, an average estimate must be used.
+const TEMPERATURE: f64 = 18.0;
 
 const SPEED: i16 = 100;
 
-use defmt_rtt as _;
-use embassy_stm32 as _;
-use panic_probe as _;
+const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(60);
 
-static CHANNEL: Channel<ThreadModeRawMutex, u64, 1> = Channel::new();
+static CHANNEL: Channel<MyMutex, Distance, 1> = Channel::new();
+
+static EXECUTOR_MED: InterruptExecutor = InterruptExecutor::new();
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -101,24 +120,44 @@ async fn main(spawner: Spawner) {
         Input::new(p.PB3, Pull::Down),
     );
 
-    let sonar = Sonar::new(
-        Output::new(p.PA2, Level::Low, Speed::High),
-        ExtiInput::new(p.PA3, p.EXTI3, Pull::Down),
-    );
     let receiver = CHANNEL.receiver();
     let sender = CHANNEL.sender();
 
-    spawner.must_spawn(read_sonar(sender, sonar));
+    let trigger = Output::new(p.PC0, Level::Low, Speed::High);
+    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::None);
+
+    let config = hcsr04_async::Config {
+        distance_unit: DistanceUnit::Centimeters,
+        temperature_unit: TemperatureUnit::Celsius,
+    };
+
+    let clock = EmbassyClock;
+    let delay = Delay;
+
+    let sonar = Hcsr04::new(trigger, echo, config, clock, delay);
+
+    // Medium-priority executor: UART5, priority level 7
+    interrupt::UART5.set_priority(Priority::P7);
+    let mp_spawner = EXECUTOR_MED.start(interrupt::UART5);
+    mp_spawner.must_spawn(read_sonar(sender, sonar));
+
     spawner.must_spawn(roam(receiver, line_sensor, left_motor, right_motor));
 }
 
 #[embassy_executor::task]
 async fn read_sonar(sender: MySender<'static>, mut sonar: MySonar<'static>) {
     loop {
-        let distance_mm = sonar.read().await;
-        debug!("distance to obstacle: {}mm", distance_mm);
-        sender.send(distance_mm).await;
-        Timer::after_nanos(50).await;
+        let measurment = sonar.measure(TEMPERATURE).await;
+
+        match measurment {
+            Ok(distance) => {
+                debug!("distance to obstacle: {}cm", distance);
+                sender.send(distance).await;
+            }
+            Err(err) => defmt::error!("{:?}", err),
+        };
+
+        Timer::after(SONAR_MEASURE_CYCLE).await; // for sensor to catch up with the polling rate
     }
 }
 
@@ -137,15 +176,15 @@ async fn roam(
             right.stop();
         }
 
-        left.run(speed);
-        right.run(speed);
-
-        if let Some(distance_mm) = receiver.try_receive().ok() {
-            if distance_mm <= 20 {
-                left.stop();
-                right.stop();
-            }
+        let distance_cm = receiver.receive().await;
+        if distance_cm >= 6.0 {
+            left.run(speed);
+            right.run(speed);
+        } else {
+            left.stop();
+            right.stop();
         }
+
         Timer::after_nanos(50).await;
     }
 }
@@ -156,4 +195,10 @@ async fn blink(mut led: Output<'static>) {
         led.toggle();
         Timer::after_millis(500).await;
     }
+}
+
+#[allow(non_snake_case)]
+#[interrupt]
+unsafe fn UART5() {
+    unsafe { EXECUTOR_MED.on_interrupt() }
 }
