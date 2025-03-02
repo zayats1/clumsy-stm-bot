@@ -10,6 +10,11 @@ fn panic() -> ! {
     cortex_m::asm::udf()
 }
 
+use defmt_rtt as _;
+use embassy_stm32 as _;
+
+use panic_probe as _;
+
 use embedded_hal::digital::ErrorKind;
 use embedded_hal::digital::{ErrorType, InputPin};
 
@@ -34,10 +39,11 @@ impl InputPin for MockPin {
     }
 
     fn is_low(&mut self) -> Result<bool, Self::Error> {
-        Ok(self.state)
+        Ok(!self.state)
     }
 }
 
+// run with cargo test --lib
 #[cfg(test)]
 #[defmt_test::tests]
 mod unit_tests {
@@ -45,10 +51,11 @@ mod unit_tests {
     use defmt::assert;
     #[test]
     fn line_sensor() {
-        use clumsy_stm_bot::drivers::line_sensor::LineSensor;
+        use crate::drivers::line_sensor::LineSensor;
         let mut sensor = LineSensor::new(MockPin::new(true));
-        assert!(sensor.is_on_line(), "{}", true);
-        let mut sensor2 = LineSensor::new(MockPin::new(false));
-        assert!(sensor.is_on_line(), "{}", false);
+        assert!(sensor.is_on_line());
+        let new_pin = MockPin::new(false);
+        let mut sensor2 = LineSensor::new(new_pin);
+        assert!(!sensor2.is_on_line());
     }
 }

@@ -40,17 +40,6 @@ embedded-hal-async = "1.0.0"
 hcsr04_async = "0.4"
 
 
-# cargo build/run
-
-[dev-dependencies]
-embedded-test = { version = "0.6", features = ["embassy"] }
-rtt-target = { version = "0.6", features = ["defmt"] }
-
-
-[[test]]
-name = "integration"
-harness = false
-
 [lib]
 harness = false
 
