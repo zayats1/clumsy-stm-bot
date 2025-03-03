@@ -39,6 +39,9 @@ libm = "0.2.11"
 embedded-hal-async = "1.0.0"
 hcsr04_async = "0.4"
 
+[[bin]]
+name = "clumsy-stm-bot"
+harness = false
 
 [lib]
 harness = false
