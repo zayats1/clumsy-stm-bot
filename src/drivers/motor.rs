@@ -63,7 +63,7 @@ where
 
     pub fn run(&mut self, speed: i16) {
         if speed < 0 {
-            self.speed = speed * (-1);
+            self.speed = -speed;
             self.set_dir(Direction::Backward);
         } else {
             self.set_dir(Direction::Forward);

@@ -49,7 +49,7 @@ where
     }
 
     pub fn read(&mut self) -> LinePos {
-        return if self.left.is_on_line() && !self.middle.is_on_line() && !self.right.is_on_line() {
+        if self.left.is_on_line() && !self.middle.is_on_line() && !self.right.is_on_line() {
             debug!("Lefter");
             LinePos::Lefter
         } else if self.left.is_on_line() && self.middle.is_on_line() && !self.right.is_on_line() {
@@ -67,6 +67,6 @@ where
         } else {
             debug!("NoLine");
             LinePos::NoLine
-        };
+        }
     }
 }
