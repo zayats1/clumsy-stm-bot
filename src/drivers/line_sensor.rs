@@ -16,7 +16,7 @@ impl<T: InputPin> LineSensor<T> {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, defmt::Format)]
+#[derive(Debug, Default, Clone, Copy, defmt::Format, PartialEq)]
 pub enum LinePos {
     #[default]
     NoLine,
@@ -49,24 +49,35 @@ where
     }
 
     pub fn read(&mut self) -> LinePos {
-        return if self.left.is_on_line() && !self.middle.is_on_line() && !self.right.is_on_line() {
-            debug!("Lefter");
-            LinePos::Lefter
-        } else if self.left.is_on_line() && self.middle.is_on_line() && !self.right.is_on_line() {
-            debug!("Left");
-            LinePos::Left
-        } else if !self.left.is_on_line() && self.middle.is_on_line() && !self.right.is_on_line() {
-            debug!("Middle");
-            LinePos::Middle
-        } else if !self.left.is_on_line() && self.middle.is_on_line() && self.right.is_on_line() {
-            debug!("Right");
-            LinePos::Right
-        } else if !self.left.is_on_line() && !self.middle.is_on_line() && self.right.is_on_line() {
-            debug!("Righter");
-            LinePos::Righter
-        } else {
-            debug!("NoLine");
-            LinePos::NoLine
-        };
+        match (
+            self.left.is_on_line(),
+            self.middle.is_on_line(),
+            self.right.is_on_line(),
+        ) {
+            (true, false, false) => {
+                debug!("Lefter");
+                LinePos::Lefter
+            }
+            (true, true, false) => {
+                debug!("Left");
+                LinePos::Left
+            }
+            (false, true, false) => {
+                debug!("Middle");
+                LinePos::Middle
+            }
+            (false, true, true) => {
+                debug!("Right");
+                LinePos::Right
+            }
+            (false, false, true) => {
+                debug!("Righter");
+                LinePos::Righter
+            }
+            _ => {
+                debug!("NoLine");
+                LinePos::NoLine
+            }
+        }
     }
 }

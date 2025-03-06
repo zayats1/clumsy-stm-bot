@@ -10,13 +10,52 @@ fn panic() -> ! {
     cortex_m::asm::udf()
 }
 
+use defmt_rtt as _;
+use embassy_stm32 as _;
+
+use panic_probe as _;
+
+// run with cargo test --lib
 #[cfg(test)]
 #[defmt_test::tests]
 mod unit_tests {
     use defmt::assert;
+
+    use embedded_hal::digital::ErrorKind;
+    use embedded_hal::digital::{ErrorType, InputPin};
+
     #[test]
-    fn some_test() {
-        //Todo actual unit tests
-        assert!(true)
+    fn line_sensor() {
+        use crate::drivers::line_sensor::LineSensor;
+        let mut sensor = LineSensor::new(MockPin::new(true));
+        assert!(sensor.is_on_line());
+        let new_pin = MockPin::new(false);
+        let mut sensor2 = LineSensor::new(new_pin);
+        assert!(!sensor2.is_on_line());
+    }
+
+    #[derive(Default)]
+    struct MockPin {
+        state: bool,
+    }
+
+    impl MockPin {
+        fn new(state: bool) -> Self {
+            Self { state }
+        }
+    }
+
+    impl ErrorType for MockPin {
+        type Error = ErrorKind;
+    }
+
+    impl InputPin for MockPin {
+        fn is_high(&mut self) -> Result<bool, Self::Error> {
+            Ok(self.state)
+        }
+
+        fn is_low(&mut self) -> Result<bool, Self::Error> {
+            Ok(!self.state)
+        }
     }
 }
