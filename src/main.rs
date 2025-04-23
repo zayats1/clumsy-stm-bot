@@ -57,7 +57,7 @@ type MyServo<'a> = Servo<SimplePwmChannel<'a, TIM1>>;
 
 // The temperature of the environment, if known, can be used to adjust the speed of sound.
 // If unknown, an average estimate must be used.
-const TEMPERATURE: f64 = 19.0;
+const TEMPERATURE: f64 = 25.0;
 
 const SPEED: i16 = 100;
 
