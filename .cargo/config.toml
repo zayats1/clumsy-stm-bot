@@ -4,8 +4,7 @@ runner = "probe-rs run --chip stm32l476rg"
 rustflags = [
   "-C",
   "link-arg=--nmagic",
-  "-C",
-  "link-arg=-Tlink.x",
+
   "-C",
   "link-arg=-Tdefmt.x",
   # Code-size optimizations.
