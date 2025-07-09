@@ -62,11 +62,7 @@ async fn main(_spawner: Spawner) {
     let mut servo = Servo::new(ch3, 20u8, 180.0, max_duty);
 
     loop {
-        for angle in (0..=180)
-            .step_by(10)
-            .into_iter()
-            .chain((0..180).step_by(10).into_iter().rev())
-        {
+        for angle in (0..=180).step_by(10).chain((0..180).step_by(10).rev()) {
             let distance = sensor.measure(temperature).await;
             servo.set_angle(angle as f32);
             info!("angle {}", angle);
