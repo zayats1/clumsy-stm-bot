@@ -12,11 +12,12 @@ use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
 use embassy_stm32::{exti::ExtiInput, gpio::Level};
 use embassy_time::{Delay, Duration, Instant, Timer};
 use hcsr04_async::{DistanceUnit, Hcsr04, TemperatureUnit};
+use num_traits::float::FloatCore;
 use {defmt_rtt as _, panic_probe as _};
+
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
-    info!("Hello World!");
 
     let trigger = Output::new(p.PC0, Level::Low, Speed::High);
     let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::Down);
@@ -61,14 +62,20 @@ async fn main(_spawner: Spawner) {
 
     let mut servo = Servo::new(ch3, 20u8, 180.0, max_duty);
 
+    let mut the_map = [(0, 0.0); 37];
     loop {
-        for angle in (0..=180).step_by(10).chain((0..180).step_by(10).rev()) {
+        for (i, angle) in (0..=180)
+            .step_by(5)
+            .enumerate()
+            .chain((0..180).step_by(5).enumerate().rev())
+        {
             let distance = sensor.measure(temperature).await;
             servo.set_angle(angle as f32);
-            info!("angle {}", angle);
+            //  info!("angle {}", angle);
             match distance {
                 Ok(distance) => {
-                    info!("Distance: {} cm", distance);
+                    // info!("Distance: {} cm", distance);
+                    the_map[i] = (angle, (distance * 10.0).round() / 10.0);
                 }
                 Err(e) => {
                     info!("Error: {:?}", e);
@@ -76,7 +83,7 @@ async fn main(_spawner: Spawner) {
             }
             Timer::after(Duration::from_millis(10)).await;
         }
-
+        println!("{:?}", the_map);
         Timer::after(Duration::from_secs(1)).await;
     }
 }
