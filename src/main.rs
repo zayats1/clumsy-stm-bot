@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+use core::fmt::Write;
+
 use clumsy_stm_bot::drivers::servo::Servo;
 use clumsy_stm_bot::{self as _};
 use defmt::*;
@@ -9,11 +11,18 @@ use embassy_stm32::gpio::{Output, OutputType, Pull, Speed};
 
 use embassy_stm32::time::hz;
 use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
+use embassy_stm32::usart::{Config, Uart};
+use embassy_stm32::{bind_interrupts, peripherals, usart};
 use embassy_stm32::{exti::ExtiInput, gpio::Level};
 use embassy_time::{Delay, Duration, Instant, Timer};
 use hcsr04_async::{DistanceUnit, Hcsr04, TemperatureUnit};
+use heapless::String;
 use num_traits::float::FloatCore;
 use {defmt_rtt as _, panic_probe as _};
+
+bind_interrupts!(struct Irqs {
+    USART2 => usart::InterruptHandler<peripherals::USART2>;
+});
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -32,6 +41,10 @@ async fn main(_spawner: Spawner) {
 
     let clock = EmbassyClock;
     let delay = Delay;
+    let mut config = usart::Config::default();
+    config.baudrate = 115200;
+    let mut usart =
+        Uart::new(p.USART2, p.PA3, p.PA2, Irqs, p.DMA1_CH7, p.DMA1_CH6, config).unwrap();
 
     let config = hcsr04_async::Config {
         distance_unit: DistanceUnit::Centimeters,
@@ -63,6 +76,7 @@ async fn main(_spawner: Spawner) {
     let mut servo = Servo::new(ch3, 20u8, 180.0, max_duty);
 
     let mut the_map = [(0, 0.0); 37];
+    let mut s: String<2048> = String::new();
     loop {
         for (i, angle) in (0..=180)
             .step_by(5)
@@ -72,6 +86,7 @@ async fn main(_spawner: Spawner) {
             let distance = sensor.measure(temperature).await;
             servo.set_angle(angle as f32);
             //  info!("angle {}", angle);
+
             match distance {
                 Ok(distance) => {
                     // info!("Distance: {} cm", distance);
@@ -81,8 +96,12 @@ async fn main(_spawner: Spawner) {
                     info!("Error: {:?}", e);
                 }
             }
+
             Timer::after(Duration::from_millis(10)).await;
         }
+        core::write!(&mut s, "{:?}\r\n", the_map).unwrap();
+        unwrap!(usart.write(s.as_bytes()).await);
+        s.clear();
         println!("{:?}", the_map);
         Timer::after(Duration::from_secs(1)).await;
     }
