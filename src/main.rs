@@ -24,6 +24,9 @@ bind_interrupts!(struct Irqs {
     USART2 => usart::InterruptHandler<peripherals::USART2>;
 });
 
+const FOV: usize = 180;
+const RESOLUTION: usize = 5;
+
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
@@ -75,13 +78,13 @@ async fn main(_spawner: Spawner) {
 
     let mut servo = Servo::new(ch3, 20u8, 180.0, max_duty);
 
-    let mut the_map = [(0, 0.0); 46];
+    let mut the_map = [(0, 0.0); FOV / RESOLUTION + 1];
     let mut s: String<2048> = String::new();
     loop {
-        for (i, angle) in (0..=180)
-            .step_by(4)
+        for (i, angle) in (0..=FOV)
+            .step_by(RESOLUTION)
             .enumerate()
-            .chain((0..180).step_by(4).enumerate().rev())
+            .chain((0..FOV).step_by(RESOLUTION).enumerate().rev())
         {
             let distance = sensor.measure(temperature).await;
             servo.set_angle(angle as f32);
