@@ -110,6 +110,6 @@ async fn main(_spawner: Spawner) {
         unwrap!(usart.write(s.as_bytes()).await);
         s.clear();
         println!("{:?}", the_map);
-        Timer::after(Duration::from_secs(1)).await;
+        //Timer::after(Duration::from_secs(1)).await;
     }
 }
