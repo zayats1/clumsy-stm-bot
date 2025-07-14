@@ -99,7 +99,14 @@ async fn main(_spawner: Spawner) {
 
             Timer::after(Duration::from_millis(10)).await;
         }
-        core::write!(&mut s, "{:?}\r\n", the_map).unwrap();
+        // core::write!(&mut s, "[").unwrap();
+
+        for (angle, distance) in the_map {
+            core::write!(&mut s, "{},{};", angle, distance).unwrap();
+        }
+
+        // core::write!(&mut s, "]").unwrap();
+        core::write!(&mut s, "\n").unwrap();
         unwrap!(usart.write(s.as_bytes()).await);
         s.clear();
         println!("{:?}", the_map);
