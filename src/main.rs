@@ -11,7 +11,7 @@ use embassy_stm32::gpio::{Output, OutputType, Pull, Speed};
 
 use embassy_stm32::time::hz;
 use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
-use embassy_stm32::usart::{Config, Uart};
+use embassy_stm32::usart::Uart;
 use embassy_stm32::{bind_interrupts, peripherals, usart};
 use embassy_stm32::{exti::ExtiInput, gpio::Level};
 use embassy_time::{Delay, Duration, Instant, Timer};
