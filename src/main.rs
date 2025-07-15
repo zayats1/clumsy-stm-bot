@@ -25,8 +25,12 @@ bind_interrupts!(struct Irqs {
 });
 
 const FOV: usize = 180;
-const RESOLUTION: usize = 5;
+const RESOLUTION: usize = 20;
+const TEMPERATURE: f64 = 22.0;
 
+const DISTANCE_MEASURE_INTERVAL: Duration = Duration::from_millis(50);
+
+// to run faster: cargo run --release --bin  clumsy-stm-bot
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
@@ -58,7 +62,6 @@ async fn main(_spawner: Spawner) {
 
     // The temperature of the environment, if known, can be used to adjust the speed of sound.
     // If unknown, an average estimate must be used.
-    let temperature = 24.0;
 
     let ch3_pin = PwmPin::new_ch3(p.PA10, OutputType::PushPull);
     let pwm = SimplePwm::new(
@@ -86,7 +89,7 @@ async fn main(_spawner: Spawner) {
             .enumerate()
             .chain((0..FOV).step_by(RESOLUTION).enumerate().rev())
         {
-            let distance = sensor.measure(temperature).await;
+            let distance = sensor.measure(TEMPERATURE).await;
             servo.set_angle(angle as f32);
             //  info!("angle {}", angle);
 
@@ -100,7 +103,7 @@ async fn main(_spawner: Spawner) {
                 }
             }
 
-            Timer::after(Duration::from_millis(10)).await;
+            Timer::after(DISTANCE_MEASURE_INTERVAL).await;
         }
         // core::write!(&mut s, "[").unwrap();
 
@@ -112,7 +115,7 @@ async fn main(_spawner: Spawner) {
         core::write!(&mut s, "\n").unwrap();
         unwrap!(usart.write(s.as_bytes()).await);
         s.clear();
-        println!("{:?}", the_map);
+        // println!("{:?}", the_map);
         //Timer::after(Duration::from_secs(1)).await;
     }
 }
