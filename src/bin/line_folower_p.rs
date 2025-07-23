@@ -118,8 +118,8 @@ async fn follow_line(
                 continue;
             }
             LinePos::Lefter => {
-                left_motor.run(-SPEED * KP);
-                right_motor.run(SPEED * KP);
+                left_motor.run(-SPEED);
+                right_motor.run(SPEED);
             }
             LinePos::Left => {
                 left_motor.run(SPEED * KP);
@@ -134,8 +134,8 @@ async fn follow_line(
                 right_motor.run(SPEED * KP);
             }
             LinePos::Righter => {
-                left_motor.run(SPEED * KP);
-                right_motor.run(-SPEED * KP);
+                left_motor.run(SPEED);
+                right_motor.run(-SPEED);
             }
         };
     }
