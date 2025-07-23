@@ -34,7 +34,7 @@ type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
 const SPEED: f32 = 100.0;
 
-const KP: f32 = 0.4;
+const KP: f32 = 0.7;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -118,8 +118,8 @@ async fn follow_line(
                 continue;
             }
             LinePos::Lefter => {
-                left_motor.run(-SPEED);
-                right_motor.run(SPEED);
+                left_motor.run(-SPEED * KP);
+                right_motor.run(SPEED * KP);
             }
             LinePos::Left => {
                 left_motor.run(SPEED * KP);
@@ -134,8 +134,8 @@ async fn follow_line(
                 right_motor.run(SPEED * KP);
             }
             LinePos::Righter => {
-                left_motor.run(SPEED);
-                right_motor.run(-SPEED);
+                left_motor.run(SPEED * KP);
+                right_motor.run(-SPEED * KP);
             }
         };
     }
