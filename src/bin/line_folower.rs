@@ -32,7 +32,7 @@ type LeftMotor<'a> = Motor<SimplePwmChannel<'a, TIM3>, Output<'a>, Output<'a>>;
 type RightMotor<'a> = Motor<SimplePwmChannel<'a, TIM2>, Output<'a>, Output<'a>>;
 type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
-const SPEED: i16 = 100;
+const SPEED: f32 = 100.0;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -59,7 +59,7 @@ async fn main(spawner: Spawner) {
         ch2,
         Output::new(p.PB6, Level::Low, Speed::Low),
         Output::new(p.PC7, Level::Low, Speed::Low),
-        0,
+        0.0,
         Default::default(),
     );
 
@@ -80,7 +80,7 @@ async fn main(spawner: Spawner) {
         ch3,
         Output::new(p.PA9, Level::Low, Speed::Low),
         Output::new(p.PA8, Level::Low, Speed::Low),
-        0,
+        0.0,
         Default::default(),
     );
     let line_sensor = TrippleLineSensor::new(
@@ -120,20 +120,20 @@ async fn follow_line(
                 right_motor.run(SPEED);
             }
             LinePos::Left => {
-                left_motor.run(SPEED / 4);
-                right_motor.run(SPEED * 10 / 12);
+                left_motor.run(SPEED / 4.0);
+                right_motor.run(SPEED * 10.0 / 12.0);
             }
             LinePos::Middle => {
                 left_motor.run(SPEED);
                 right_motor.run(SPEED);
             }
             LinePos::Right => {
-                left_motor.run(SPEED * 10 / 12);
-                right_motor.run(SPEED / 4);
+                left_motor.run(SPEED * 10.0 / 12.0);
+                right_motor.run(SPEED / 4.0);
             }
             LinePos::Righter => {
-                left_motor.run(SPEED * 10 / 12);
-                right_motor.run(-SPEED * 10 / 12);
+                left_motor.run(SPEED * 10.0 / 12.0);
+                right_motor.run(-SPEED * 10.0 / 12.0);
             }
         };
     }

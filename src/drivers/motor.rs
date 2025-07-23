@@ -14,7 +14,7 @@ pub struct Motor<T: SetDutyCycle, U: OutputPin, W: OutputPin> {
     pwm_pin: T,
     forward_pin: U,
     backward_pin: W,
-    speed: i16,
+    speed: f32,
     direction: Direction,
 }
 
@@ -28,7 +28,7 @@ where
         pwm_pin: T,
         forward_pin: U,
         backward_pin: W,
-        speed: i16,
+        speed: f32,
         direction: Direction,
     ) -> Self {
         Self {
@@ -50,19 +50,19 @@ where
     }
 
     // Todo suppot for negative speed(invert dirrection)
-    pub fn get_speed(&self) -> i16 {
+    pub fn get_speed(&self) -> f32 {
         self.speed
     }
 
     pub fn stop(&mut self) {
         debug!("stop");
-        self.speed = 0;
+        self.speed = 0.0;
         let _ = self.pwm_pin.set_duty_cycle_fully_off();
         let (_, _) = (self.forward_pin.set_low(), self.backward_pin.set_high());
     }
 
-    pub fn run(&mut self, speed: i16) {
-        if speed < 0 {
+    pub fn run(&mut self, speed: f32) {
+        if speed < 0.0 {
             self.speed = -speed;
             self.set_dir(Direction::Backward);
         } else {
@@ -70,8 +70,8 @@ where
             self.speed = speed;
         }
 
-        if self.speed > 100 {
-            self.speed = 100;
+        if self.speed > 100.0 {
+            self.speed = 100.0;
         }
 
         let (_, _) = match self.direction {

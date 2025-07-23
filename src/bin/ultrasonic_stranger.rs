@@ -59,7 +59,7 @@ type MyServo<'a> = Servo<SimplePwmChannel<'a, TIM1>>;
 // If unknown, an average estimate must be used.
 const TEMPERATURE: f64 = 25.0;
 
-const SPEED: i16 = 100;
+const SPEED: f32 = 100.0;
 
 const MINIMUM_DISTANCE: f64 = 18.0; // cm
 
@@ -91,7 +91,7 @@ async fn main(spawner: Spawner) {
         ch2,
         Output::new(p.PB6, Level::Low, Speed::Low),
         Output::new(p.PC7, Level::Low, Speed::Low),
-        0,
+        0.0,
         Default::default(),
     );
 
@@ -112,7 +112,7 @@ async fn main(spawner: Spawner) {
         ch3,
         Output::new(p.PA9, Level::Low, Speed::Low),
         Output::new(p.PA8, Level::Low, Speed::Low),
-        0,
+        0.0,
         Default::default(),
     );
     let line_sensor = TrippleLineSensor::new(
