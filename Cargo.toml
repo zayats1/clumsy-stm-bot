@@ -44,6 +44,7 @@ heapless = "0.8.0"
 [patch.crates-io]
 embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", rev = "31db37aeea8285e0278c3a94297a9dce9bb2e861" }
 embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "31db37aeea8285e0278c3a94297a9dce9bb2e861" }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "31db37aeea8285e0278c3a94297a9dce9bb2e861" }
 [[bin]]
 name = "clumsy-stm-bot"
 harness = false

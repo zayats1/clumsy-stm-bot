@@ -63,7 +63,7 @@ async fn main(_spawner: Spawner) {
     // The temperature of the environment, if known, can be used to adjust the speed of sound.
     // If unknown, an average estimate must be used.
 
-    let ch3_pin = PwmPin::new_ch3(p.PA10, OutputType::PushPull);
+    let ch3_pin = PwmPin::new(p.PA10, OutputType::PushPull);
     let pwm = SimplePwm::new(
         p.TIM1,
         None,
