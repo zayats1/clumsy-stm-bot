@@ -41,7 +41,7 @@ async fn main(spawner: Spawner) {
     let led = Output::new(p.PA5, Level::High, Speed::High);
     spawner.spawn(blink(led)).unwrap();
 
-    let pwm_pin = PwmPin::new_ch2(p.PA7, OutputType::PushPull);
+    let pwm_pin = PwmPin::new(p.PA7, OutputType::PushPull);
 
     let pwm = SimplePwm::new(
         p.TIM3,
@@ -63,7 +63,7 @@ async fn main(spawner: Spawner) {
         Default::default(),
     );
 
-    let pwm_pin = PwmPin::new_ch3(p.PB10, OutputType::PushPull);
+    let pwm_pin = PwmPin::new(p.PB10, OutputType::PushPull);
     let pwm2 = SimplePwm::new(
         p.TIM2,
         None,

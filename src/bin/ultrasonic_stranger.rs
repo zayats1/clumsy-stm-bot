@@ -73,7 +73,7 @@ static EXECUTOR_MED: InterruptExecutor = InterruptExecutor::new();
 async fn main(spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
 
-    let pwm_pin = PwmPin::new_ch2(p.PA7, OutputType::PushPull);
+    let pwm_pin = PwmPin::new(p.PA7, OutputType::PushPull);
 
     let pwm = SimplePwm::new(
         p.TIM3,
@@ -95,7 +95,7 @@ async fn main(spawner: Spawner) {
         Default::default(),
     );
 
-    let pwm_pin = PwmPin::new_ch3(p.PB10, OutputType::PushPull);
+    let pwm_pin = PwmPin::new(p.PB10, OutputType::PushPull);
     let pwm2 = SimplePwm::new(
         p.TIM2,
         None,
@@ -143,7 +143,7 @@ async fn main(spawner: Spawner) {
 
     let led = Output::new(p.PA5, Level::High, Speed::High);
 
-    let ch3_pin = PwmPin::new_ch3(p.PA10, OutputType::PushPull);
+    let ch3_pin = PwmPin::new(p.PA10, OutputType::PushPull);
     let pwm = SimplePwm::new(
         p.TIM1,
         None,
