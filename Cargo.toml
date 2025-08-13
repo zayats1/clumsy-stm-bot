@@ -13,7 +13,7 @@ num-traits = { version = "0.2.19", default-features = false, features = [
     "libm",
 ] }
 panic-probe = { version = "1.0.0", features = ["print-defmt"] }
-embassy-stm32 = { version = "0.2.0", features = [
+embassy-stm32 = { version = "0.3.0", features = [
     "stm32l476rg",
     "defmt",
     "time-driver-any",
@@ -32,19 +32,16 @@ embassy-executor = { version = "0.8.0", features = [
     "executor-interrupt",
     "defmt",
 ] }
-embassy-embedded-hal = { version = "0.4", features = ["defmt"] }
+embassy-embedded-hal = { version = "0.4.0", features = ["defmt"] }
 embassy-futures = { version = "0.1.1", features = ["defmt"] }
-embassy-sync = { version = "0.7.0", features = ["defmt"] }
+embassy-sync = { version = "0.7.1", features = ["defmt"] }
 defmt-test = "0.4.0"
 libm = "0.2.15"
 embedded-hal-async = "1.0.0"
 hcsr04_async = "0.4.0"
 heapless = "0.8.0"
 
-[patch.crates-io]
-embassy-stm32 = { git = "https://github.com/embassy-rs/embassy", rev = "31db37aeea8285e0278c3a94297a9dce9bb2e861" }
-embassy-time = { git = "https://github.com/embassy-rs/embassy", rev = "31db37aeea8285e0278c3a94297a9dce9bb2e861" }
-embassy-sync = { git = "https://github.com/embassy-rs/embassy", rev = "31db37aeea8285e0278c3a94297a9dce9bb2e861" }
+
 [[bin]]
 name = "clumsy-stm-bot"
 harness = false
