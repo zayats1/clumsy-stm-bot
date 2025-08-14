@@ -34,7 +34,13 @@ type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
 const SPEED: f32 = 100.0;
 
-const KP: f32 = 0.7;
+const KP: f32 = 90.0;
+
+const KI: f32 = 0.26;
+
+const KD: f32 = 36.0;
+
+const KA: f32 = 0.082; // reduction of the movement speed
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -108,35 +114,40 @@ async fn follow_line(
     mut left_motor: LeftMotor<'static>,
     mut right_motor: RightMotor<'static>,
 ) {
+    let mut integral = 0.0f32;
+
+    let mut prev_deviation = 0.0f32;
     loop {
         Timer::after_nanos(50).await;
-
-        match sensor.read() {
+        let line_pos = sensor.read();
+        let deviation = match line_pos {
             LinePos::NoLine => {
                 left_motor.stop();
                 right_motor.stop();
                 continue;
             }
-            LinePos::Lefter => {
-                left_motor.run(-SPEED);
-                right_motor.run(SPEED);
-            }
-            LinePos::Left => {
-                left_motor.run(SPEED * KP);
-                right_motor.run(SPEED);
-            }
-            LinePos::Middle => {
-                left_motor.run(SPEED);
-                right_motor.run(SPEED);
-            }
-            LinePos::Right => {
-                left_motor.run(SPEED);
-                right_motor.run(SPEED * KP);
-            }
-            LinePos::Righter => {
-                left_motor.run(SPEED);
-                right_motor.run(-SPEED);
-            }
+            LinePos::Lefter => -2.0,
+            LinePos::Left => -1.0,
+            LinePos::Middle => 0.0,
+            LinePos::Right => 1.0,
+            LinePos::Righter => 2.0,
         };
+
+        integral = (integral + deviation).clamp(-SPEED, SPEED);
+
+        let diff = deviation - prev_deviation;
+
+        let pid_val = KP * deviation + KI * integral + KD * diff;
+
+        let attenuation = 1.0 - KA * deviation.abs();
+        let left_speed = (SPEED + pid_val).clamp(-SPEED, SPEED) * attenuation;
+
+        let right_speed = (SPEED - pid_val).clamp(-SPEED, SPEED) * attenuation;
+
+        prev_deviation = deviation;
+
+        left_motor.run(left_speed);
+
+        right_motor.run(right_speed);
     }
 }
