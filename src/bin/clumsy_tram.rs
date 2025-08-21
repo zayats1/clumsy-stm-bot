@@ -58,7 +58,7 @@ const TEMPERATURE: f64 = 25.0;
 
 const SPEED: f32 = 100.0;
 
-const MINIMUM_DISTANCE: f64 = 10.0; // cm
+const MINIMUM_DISTANCE: f64 = 6.0; // cm
 
 const KP: f32 = 180.0;
 
@@ -179,17 +179,17 @@ async fn follow_line(
     loop {
         Timer::after_nanos(50).await;
         let mut the_speed = SPEED;
-        let distance_cm = receiver.receive().await;
+
+        let distance_cm = receiver.receive().await; // Possible cause of slugginess
         if distance_cm <= MINIMUM_DISTANCE {
             left_motor.stop();
             right_motor.stop();
             debug!("{}", "Obstacle detected");
             continue;
         }
-
-        if distance_cm > MINIMUM_DISTANCE && distance_cm <= MINIMUM_DISTANCE * 1.5 {
-            debug!("{}", "Commint ot the obstcle");
-            the_speed = SPEED / 1.5;
+        if distance_cm > MINIMUM_DISTANCE && distance_cm <= MINIMUM_DISTANCE * 1.2 {
+            debug!("{}", "Comming to the obstacle");
+            the_speed /= 1.5;
         }
 
         let deviation = {
@@ -225,9 +225,9 @@ async fn follow_line(
         let pid_val = KP * deviation + KI * integral + KD * diff;
 
         let attenuation = 1.0 - KA * deviation.abs();
-        let left_speed = (SPEED - pid_val).clamp(-the_speed, the_speed) * attenuation;
+        let left_speed = (the_speed - pid_val).clamp(-the_speed, the_speed) * attenuation;
 
-        let right_speed = (SPEED + pid_val).clamp(-the_speed, the_speed) * attenuation;
+        let right_speed = (the_speed + pid_val).clamp(-the_speed, the_speed) * attenuation;
 
         prev_deviation = deviation;
 
