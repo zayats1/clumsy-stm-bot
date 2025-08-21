@@ -4,15 +4,23 @@ use embedded_hal::digital::InputPin;
 #[derive(Debug, Default, Clone, Copy, defmt::Format)]
 pub struct LineSensor<T: InputPin> {
     pin: T,
+    invert: bool,
 }
 
 impl<T: InputPin> LineSensor<T> {
     pub fn new(pin: T) -> Self {
-        Self { pin }
+        Self { pin, invert: false }
+    }
+    pub fn new_invert(pin: T) -> Self {
+        Self { pin, invert: true }
     }
 
     pub fn is_on_line(&mut self) -> bool {
-        self.pin.is_high().unwrap()
+        if self.invert {
+            self.pin.is_low().unwrap()
+        } else {
+            self.pin.is_high().unwrap()
+        }
     }
 }
 
