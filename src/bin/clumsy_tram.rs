@@ -70,7 +70,7 @@ const KA: f32 = 0.082; // reduction of the movement speed
 
 const MIDDLE: f32 = 2.0;
 
-const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(60);
+const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(6);
 
 static CHANNEL: Channel<MyMutex, Distance, 1> = Channel::new();
 
@@ -176,7 +176,7 @@ async fn follow_line(
 
     let mut prev_deviation = 0.0f32;
 
-    loop {
+    'main_loop: loop {
         Timer::after_nanos(50).await;
         let mut the_speed = SPEED;
 
@@ -184,12 +184,15 @@ async fn follow_line(
         if distance_cm <= MINIMUM_DISTANCE {
             left_motor.stop();
             right_motor.stop();
+
+            //`` integral = 0.0;
+            // prev_deviation = 0.0;
             debug!("{}", "Obstacle detected");
-            continue;
+            continue 'main_loop;
         }
         if distance_cm > MINIMUM_DISTANCE && distance_cm <= MINIMUM_DISTANCE * 1.2 {
             debug!("{}", "Comming to the obstacle");
-            the_speed /= 1.5;
+            the_speed /= 1.2;
         }
 
         let deviation = {
