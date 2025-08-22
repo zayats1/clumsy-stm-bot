@@ -54,7 +54,7 @@ type MySender<'a> = Sender<'a, MyMutex, Distance, 1>;
 
 type MyLineSensor<'a> = [LineSensor<Input<'a>>; 5];
 
-const TEMPERATURE: f64 = 25.0;
+const TEMPERATURE: f64 = 22.0;
 
 const SPEED: f32 = 100.0;
 
