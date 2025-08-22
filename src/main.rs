@@ -112,7 +112,7 @@ async fn main(_spawner: Spawner) {
         }
 
         // core::write!(&mut s, "]").unwrap();
-        core::write!(&mut s, "\n").unwrap();
+        writeln!(&mut s).unwrap();
         unwrap!(usart.write(s.as_bytes()).await);
         s.clear();
         // println!("{:?}", the_map);
