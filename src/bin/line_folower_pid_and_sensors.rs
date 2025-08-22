@@ -43,9 +43,6 @@ const MIDDLE: f32 = 2.0;
 async fn main(spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
 
-    let led = Output::new(p.PA5, Level::High, Speed::High);
-    spawner.spawn(blink(led)).unwrap();
-
     let pwm_pin = PwmPin::new(p.PA7, OutputType::PushPull);
 
     let pwm = SimplePwm::new(
@@ -96,6 +93,9 @@ async fn main(spawner: Spawner) {
         LineSensor::new_invert(Input::new(p.PA4, Pull::Down)),
     ];
     spawner.must_spawn(follow_line(line_sensors, left_motor, right_motor));
+
+    let led = Output::new(p.PA5, Level::High, Speed::High);
+    spawner.spawn(blink(led)).unwrap();
 }
 
 #[embassy_executor::task]
