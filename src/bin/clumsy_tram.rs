@@ -64,7 +64,7 @@ const KA: f32 = 0.082; // reduction of the movement speed
 
 const MIDDLE: f32 = 2.0;
 
-const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(6);
+const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(60);
 type MySignal = Signal<CriticalSectionRawMutex, Distance>;
 static SOME_SIGNAL: MySignal = Signal::new();
 
@@ -171,27 +171,28 @@ async fn follow_line(
     let mut integral = 0.0f32;
 
     let mut prev_deviation = 0.0f32;
+    let mut is_running = false;
 
-    'main_loop: loop {
+    loop {
         Timer::after_nanos(50).await;
         let mut the_speed = SPEED;
 
         if let Some(distance_cm) = receiver.try_take() {
             // Possible cause of slugginess
-            if distance_cm <= MINIMUM_DISTANCE {
-                left_motor.stop();
-                right_motor.stop();
-
+            if distance_cm >= MINIMUM_DISTANCE {
+                is_running = true;
                 //`` integral = 0.0;
                 // prev_deviation = 0.0;
                 debug!("{}", "Obstacle detected");
-                continue 'main_loop;
-            }
-            if distance_cm > MINIMUM_DISTANCE && distance_cm <= MINIMUM_DISTANCE * 1.2 {
-                debug!("{}", "Comming to the obstacle");
-                the_speed /= 1.2;
+                if distance_cm > MINIMUM_DISTANCE && distance_cm <= MINIMUM_DISTANCE * 1.2 {
+                    debug!("{}", "Comming to the obstacle");
+                    the_speed /= 1.2;
+                }
+            } else {
+                is_running = false;
             }
         }
+
         let deviation = {
             let mut sum = 0;
             let mut activated = 0;
@@ -203,10 +204,8 @@ async fn follow_line(
             }
 
             if activated == 5 {
-                left_motor.stop();
-                right_motor.stop();
+                is_running = false;
                 debug!("{}", "No line");
-                continue;
             }
 
             if activated == 0 {
@@ -215,8 +214,13 @@ async fn follow_line(
                 MIDDLE - sum as f32 / activated as f32
             }
         };
-
         debug!("{}", deviation);
+
+        if !is_running {
+            left_motor.stop();
+            right_motor.stop();
+            continue;
+        }
 
         integral = (integral + deviation).clamp(-the_speed, the_speed);
 
