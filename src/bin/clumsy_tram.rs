@@ -7,10 +7,7 @@
 use defmt::debug;
 use defmt_rtt as _;
 
-use embassy_sync::{
-    blocking_mutex::raw::CriticalSectionRawMutex,
-    channel::{Channel, Receiver, Sender},
-};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use panic_probe as _;
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
@@ -48,9 +45,6 @@ use embassy_stm32::exti::ExtiInput;
 type MySonar<'a> = Hcsr04<Output<'a>, ExtiInput<'a>, EmbassyClock, Delay>;
 
 type Distance = f64;
-type MyMutex = CriticalSectionRawMutex;
-type MyReceiver<'a> = Receiver<'a, MyMutex, Distance, 1>;
-type MySender<'a> = Sender<'a, MyMutex, Distance, 1>;
 
 type MyLineSensor<'a> = [LineSensor<Input<'a>>; 5];
 
@@ -71,8 +65,8 @@ const KA: f32 = 0.082; // reduction of the movement speed
 const MIDDLE: f32 = 2.0;
 
 const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(6);
-
-static CHANNEL: Channel<MyMutex, Distance, 1> = Channel::new();
+type MySignal = Signal<CriticalSectionRawMutex, Distance>;
+static SOME_SIGNAL: MySignal = Signal::new();
 
 static EXECUTOR_MED: InterruptExecutor = InterruptExecutor::new();
 
@@ -130,9 +124,6 @@ async fn main(spawner: Spawner) {
         LineSensor::new_invert(Input::new(p.PA4, Pull::Down)),
     ];
 
-    let receiver = CHANNEL.receiver();
-    let sender = CHANNEL.sender();
-
     let trigger = Output::new(p.PC0, Level::Low, Speed::High);
     let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::None);
 
@@ -151,10 +142,15 @@ async fn main(spawner: Spawner) {
 
     let led = Output::new(p.PA5, Level::High, Speed::High);
 
-    mp_spawner.must_spawn(read_sonar(sender, sonar));
+    mp_spawner.must_spawn(read_sonar(&SOME_SIGNAL, sonar));
     spawner.must_spawn(blink(led));
 
-    spawner.must_spawn(follow_line(receiver, line_sensors, left_motor, right_motor));
+    spawner.must_spawn(follow_line(
+        &SOME_SIGNAL,
+        line_sensors,
+        left_motor,
+        right_motor,
+    ));
 }
 
 #[embassy_executor::task]
@@ -167,7 +163,7 @@ async fn blink(mut led: Output<'static>) {
 
 #[embassy_executor::task]
 async fn follow_line(
-    receiver: MyReceiver<'static>,
+    receiver: &'static MySignal,
     mut sensors: MyLineSensor<'static>,
     mut left_motor: LeftMotor<'static>,
     mut right_motor: RightMotor<'static>,
@@ -180,21 +176,22 @@ async fn follow_line(
         Timer::after_nanos(50).await;
         let mut the_speed = SPEED;
 
-        let distance_cm = receiver.receive().await; // Possible cause of slugginess
-        if distance_cm <= MINIMUM_DISTANCE {
-            left_motor.stop();
-            right_motor.stop();
+        if let Some(distance_cm) = receiver.try_take() {
+            // Possible cause of slugginess
+            if distance_cm <= MINIMUM_DISTANCE {
+                left_motor.stop();
+                right_motor.stop();
 
-            //`` integral = 0.0;
-            // prev_deviation = 0.0;
-            debug!("{}", "Obstacle detected");
-            continue 'main_loop;
+                //`` integral = 0.0;
+                // prev_deviation = 0.0;
+                debug!("{}", "Obstacle detected");
+                continue 'main_loop;
+            }
+            if distance_cm > MINIMUM_DISTANCE && distance_cm <= MINIMUM_DISTANCE * 1.2 {
+                debug!("{}", "Comming to the obstacle");
+                the_speed /= 1.2;
+            }
         }
-        if distance_cm > MINIMUM_DISTANCE && distance_cm <= MINIMUM_DISTANCE * 1.2 {
-            debug!("{}", "Comming to the obstacle");
-            the_speed /= 1.2;
-        }
-
         let deviation = {
             let mut sum = 0;
             let mut activated = 0;
@@ -241,14 +238,14 @@ async fn follow_line(
 }
 
 #[embassy_executor::task]
-async fn read_sonar(sender: MySender<'static>, mut sonar: MySonar<'static>) {
+async fn read_sonar(sender: &'static MySignal, mut sonar: MySonar<'static>) {
     loop {
         let measurment = sonar.measure(TEMPERATURE).await;
 
         match measurment {
             Ok(distance) => {
                 debug!("distance to obstacle: {}cm", distance);
-                sender.send(distance).await;
+                sender.signal(distance);
             }
             Err(err) => defmt::error!("{:?}", err),
         };
