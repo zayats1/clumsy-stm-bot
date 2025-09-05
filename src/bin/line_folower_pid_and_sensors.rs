@@ -29,13 +29,13 @@ type MyLineSensor<'a> = [LineSensor<Input<'a>>; 5];
 
 const SPEED: f32 = 100.0;
 
-const KP: f32 = 180.0;
+const KP: f32 = 152.0;
 
-const KI: f32 = 0.264;
+const KI: f32 = 0.225;
 
 const KD: f32 = 66.0;
 
-const KA: f32 = 0.082; // reduction of the movement speed
+const KA: f32 = 0.09; // reduction of the movement speed
 
 const MIDDLE: f32 = 2.0;
 
