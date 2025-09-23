@@ -29,7 +29,7 @@ type MyLineSensor<'a> = [LineSensor<Input<'a>>; 5];
 
 const SPEED: f32 = 100.0;
 
-const KP: f32 = 180.0;
+const KP: f32 = 170.0;
 
 const KI: f32 = 0.250;
 
