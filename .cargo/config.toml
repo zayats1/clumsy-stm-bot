@@ -1,6 +1,8 @@
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
 runner = "probe-rs run --chip stm32l476rg"
 
+# if probe rs doesn't work
+# cargo objcopy --release --bin line_folower_pid_and_sensors -- -O binary bot.bin
 rustflags = [
   "-C",
   "linker=flip-link",
