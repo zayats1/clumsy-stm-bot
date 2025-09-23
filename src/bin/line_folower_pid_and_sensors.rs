@@ -29,11 +29,11 @@ type MyLineSensor<'a> = [LineSensor<Input<'a>>; 5];
 
 const SPEED: f32 = 100.0;
 
-const KP: f32 = 152.0;
+const KP: f32 = 160.0;
 
-const KI: f32 = 0.225;
+const KI: f32 = 0.200;
 
-const KD: f32 = 66.0;
+const KD: f32 = 155.0;
 
 const KA: f32 = 0.09; // reduction of the movement speed
 
@@ -118,12 +118,12 @@ async fn follow_line(
     loop {
         Timer::after_nanos(50).await;
         let deviation = {
-            let mut sum = 0;
+            let mut sum = 0.0;
             let mut activated = 0;
             for (idx, sensor) in sensors.iter_mut().enumerate() {
                 if sensor.is_on_line() {
                     activated += 1;
-                    sum += idx;
+                    sum += idx as f32 * 1.05;
                 }
             }
 
