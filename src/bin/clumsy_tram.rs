@@ -50,16 +50,15 @@ type MyLineSensor<'a> = [LineSensor<Input<'a>>; 5];
 
 const TEMPERATURE: f64 = 22.0;
 
-const SPEED: f32 = 100.0;
-
 const MINIMUM_DISTANCE: f64 = 6.0; // cm
 
-const KP: f32 = 180.0;
+const SPEED: f32 = 100.0;
 
-const KI: f32 = 0.264;
+const KP: f32 = 170.0;
 
-const KD: f32 = 66.0;
+const KI: f32 = 0.050;
 
+const KD: f32 = 100.0;
 const KA: f32 = 0.082; // reduction of the movement speed
 
 const MIDDLE: f32 = 2.0;
@@ -174,7 +173,7 @@ async fn follow_line(
     let mut is_running = false;
 
     loop {
-        Timer::after_nanos(50).await;
+        Timer::after_nanos(500).await;
         let mut the_speed = SPEED;
 
         if let Some(distance_cm) = receiver.try_take() {
@@ -184,9 +183,9 @@ async fn follow_line(
                 //`` integral = 0.0;
                 // prev_deviation = 0.0;
                 debug!("{}", "Obstacle detected");
-                if distance_cm > MINIMUM_DISTANCE && distance_cm <= MINIMUM_DISTANCE * 1.2 {
+                if distance_cm <= MINIMUM_DISTANCE * 1.8 {
                     debug!("{}", "Comming to the obstacle");
-                    the_speed /= 1.2;
+                    the_speed /= 1.15;
                 }
             } else {
                 is_running = false;
