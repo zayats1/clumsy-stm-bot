@@ -31,11 +31,11 @@ const SPEED: f32 = 100.0;
 
 const KP: f32 = 170.0;
 
-const KI: f32 = 0.250;
+const KI: f32 = 0.050;
 
-const KD: f32 = 150.0;
+const KD: f32 = 100.0;
 
-const KA: f32 = 0.002; // reduction of the movement speed
+const KA: f32 = 0.000; // reduction of the movement speed
 
 const MIDDLE: f32 = 2.0;
 
@@ -51,7 +51,7 @@ async fn main(spawner: Spawner) {
         Some(pwm_pin),
         None,
         None,
-        khz(10),
+        khz(1),
         Default::default(),
     );
     let mut ch2 = pwm.split().ch2;
@@ -72,7 +72,7 @@ async fn main(spawner: Spawner) {
         None,
         Some(pwm_pin),
         None,
-        khz(10),
+        khz(1),
         Default::default(),
     );
     let mut ch3 = pwm2.split().ch3;
