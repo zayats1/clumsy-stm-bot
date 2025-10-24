@@ -34,13 +34,13 @@ type MyLineSensor<'a> = TrippleLineSensor<Input<'a>, Input<'a>, Input<'a>>;
 
 const SPEED: f32 = 100.0;
 
-const KP: f32 = 90.0;
+const KP: f32 = 120.0;
 
-const KI: f32 = 0.26;
+const KI: f32 = 0.16;
 
-const KD: f32 = 36.0;
+const KD: f32 = 56.0;
 
-const KA: f32 = 0.082; // reduction of the movement speed
+const KA: f32 = 0.002; // reduction of the movement speed
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
