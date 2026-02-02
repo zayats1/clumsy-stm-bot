@@ -13,7 +13,7 @@ num-traits = { version = "0.2.19", default-features = false, features = [
     "libm",
 ] }
 panic-probe = { version = "1.0.0", features = ["print-defmt"] }
-embassy-stm32 = { version = "0.4.0", features = [
+embassy-stm32 = { version = "0.5.0", features = [
     "stm32l476rg",
     "defmt",
     "time-driver-any",
@@ -21,7 +21,7 @@ embassy-stm32 = { version = "0.4.0", features = [
     "exti",
 ] }
 defmt = "1.0.1"
-defmt-rtt = "1.0.0"
+defmt-rtt = "1.1.0"
 embassy-time = { version = "0.5.0", features = [
     "defmt",
     "defmt-timestamp-uptime",
@@ -36,10 +36,10 @@ embassy-embedded-hal = { version = "0.5.0", features = ["defmt"] }
 embassy-futures = { version = "0.1.2", features = ["defmt"] }
 embassy-sync = { version = "0.7.2", features = ["defmt"] }
 defmt-test = "0.4.0"
-libm = "0.2.15"
+libm = "0.2.16"
 embedded-hal-async = "1.0.0"
-hcsr04_async = "0.4.0"
-heapless = "0.9.1"
+hcsr04_async = "0.5.0"
+heapless = "0.9.2"
 
 
 [[bin]]

@@ -15,6 +15,7 @@ use clumsy_stm_bot::drivers::{line_sensor::LineSensor, motor::Motor};
 
 use embassy_executor::{InterruptExecutor, Spawner};
 use embassy_stm32::{
+    bind_interrupts, exti,
     gpio::{Input, Level, Output, OutputType, Pull, Speed},
     interrupt,
     peripherals::{TIM2, TIM3},
@@ -69,6 +70,11 @@ type MySignal = Signal<CriticalSectionRawMutex, Distance>;
 static SOME_SIGNAL: MySignal = Signal::new();
 
 static EXECUTOR_MED: InterruptExecutor = InterruptExecutor::new();
+
+bind_interrupts!(
+    pub struct Irqs{
+        EXTI1=> exti::InterruptHandler<interrupt::typelevel::EXTI1>;
+});
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -125,7 +131,7 @@ async fn main(spawner: Spawner) {
     ];
 
     let trigger = Output::new(p.PC0, Level::Low, Speed::High);
-    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::None);
+    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::None, Irqs);
 
     let config = hcsr04_async::Config {
         distance_unit: DistanceUnit::Centimeters,

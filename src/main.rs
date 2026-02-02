@@ -12,9 +12,10 @@ use embassy_stm32::gpio::{Output, OutputType, Pull, Speed};
 use embassy_stm32::time::hz;
 use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
 use embassy_stm32::usart::Uart;
-use embassy_stm32::{bind_interrupts, peripherals, usart};
+use embassy_stm32::{bind_interrupts, exti, interrupt, peripherals, usart};
 use embassy_stm32::{exti::ExtiInput, gpio::Level};
 use embassy_time::{Delay, Duration, Instant, Timer};
+use embedded_hal::pwm::SetDutyCycle;
 use hcsr04_async::{DistanceUnit, Hcsr04, TemperatureUnit};
 use heapless::String;
 use num_traits::float::FloatCore;
@@ -24,6 +25,10 @@ bind_interrupts!(struct Irqs {
     USART2 => usart::InterruptHandler<peripherals::USART2>;
 });
 
+bind_interrupts!(
+    pub struct Irqs2{
+        EXTI1=> exti::InterruptHandler<interrupt::typelevel::EXTI1>;
+});
 const FOV: usize = 180;
 const RESOLUTION: usize = 20;
 const TEMPERATURE: f64 = 22.0;
@@ -36,7 +41,7 @@ async fn main(_spawner: Spawner) {
     let p = embassy_stm32::init(Default::default());
 
     let trigger = Output::new(p.PC0, Level::Low, Speed::High);
-    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::Down);
+    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::Down, Irqs2);
 
     struct EmbassyClock;
 
@@ -77,7 +82,7 @@ async fn main(_spawner: Spawner) {
     let mut ch3 = pwm.split().ch3;
     ch3.enable();
 
-    let max_duty = ch3.max_duty_cycle();
+    let max_duty = SetDutyCycle::max_duty_cycle(&ch3);
 
     let mut servo = Servo::new(ch3, 20u8, 180.0, max_duty);
 

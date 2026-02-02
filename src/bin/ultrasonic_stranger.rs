@@ -13,10 +13,11 @@ use clumsy_stm_bot::{
 use defmt_rtt as _;
 use embassy_executor::{InterruptExecutor, Spawner};
 use embassy_stm32::{
-    self as _,
+    self as _, bind_interrupts, exti,
     interrupt::{InterruptExt, Priority},
 };
 use embassy_stm32::{interrupt, peripherals::TIM1};
+use embedded_hal::pwm::SetDutyCycle;
 use panic_probe as _;
 
 use defmt::debug;
@@ -68,6 +69,11 @@ const SONAR_MEASURE_CYCLE: Duration = Duration::from_millis(60);
 static CHANNEL: Channel<MyMutex, Distance, 1> = Channel::new();
 
 static EXECUTOR_MED: InterruptExecutor = InterruptExecutor::new();
+
+bind_interrupts!(
+    pub struct Irqs{
+        EXTI1=> exti::InterruptHandler<interrupt::typelevel::EXTI1>;
+});
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -125,7 +131,7 @@ async fn main(spawner: Spawner) {
     let sender = CHANNEL.sender();
 
     let trigger = Output::new(p.PC0, Level::Low, Speed::High);
-    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::None);
+    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::None, Irqs);
 
     let config = hcsr04_async::Config {
         distance_unit: DistanceUnit::Centimeters,
@@ -157,7 +163,7 @@ async fn main(spawner: Spawner) {
     let mut ch3 = pwm.split().ch3;
     ch3.enable();
 
-    let max_duty = ch3.max_duty_cycle();
+    let max_duty = SetDutyCycle::max_duty_cycle(&ch3);
 
     let servo = Servo::new(ch3, 20u8, 180.0, max_duty);
 

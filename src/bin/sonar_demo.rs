@@ -4,10 +4,16 @@
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_stm32::gpio::{Output, Pull, Speed};
+use embassy_stm32::{bind_interrupts, exti, interrupt};
 use embassy_stm32::{exti::ExtiInput, gpio::Level};
 use embassy_time::{Delay, Duration, Instant, Timer};
 use hcsr04_async::{DistanceUnit, Hcsr04, TemperatureUnit};
 use {defmt_rtt as _, panic_probe as _};
+
+bind_interrupts!(
+    pub struct Irqs{
+        EXTI1=> exti::InterruptHandler<interrupt::typelevel::EXTI1>;
+});
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -15,7 +21,7 @@ async fn main(_spawner: Spawner) {
     info!("Hello World!");
 
     let trigger = Output::new(p.PC0, Level::Low, Speed::High);
-    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::Down);
+    let echo = ExtiInput::new(p.PC1, p.EXTI1, Pull::Down, Irqs);
 
     struct EmbassyClock;
 

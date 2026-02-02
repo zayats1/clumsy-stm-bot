@@ -9,6 +9,7 @@ use embassy_stm32::gpio::OutputType;
 use embassy_stm32::time::hz;
 use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
 use embassy_time::Timer;
+use embedded_hal::pwm::SetDutyCycle;
 use {defmt_rtt as _, panic_probe as _};
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -31,7 +32,7 @@ async fn main(_spawner: Spawner) {
 
     info!("PWM initialized");
 
-    let max_duty = ch3.max_duty_cycle();
+    let max_duty = SetDutyCycle::max_duty_cycle(&ch3);
     info!("PWM max duty {}", max_duty);
 
     let mut servo = Servo::new(ch3, 20u8, 180.0, max_duty);
